@@ -1,0 +1,22 @@
+services:
+  app:
+    container_name: app
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app # Bind mount the current directory to /app in the container
+    depends_on:
+      - database
+  database:
+    container_name: database
+    image: 'postgres:latest'
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - db-data:/var/lib/postgresql/data/
+      # - ${PWD}/init.sql:/docker-entrypoint-initdb.d/init.sql
+volumes:
+  db-data:
