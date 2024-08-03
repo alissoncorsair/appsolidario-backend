@@ -22,7 +22,11 @@ func main() {
 	initStorage(db)
 
 	server := api.NewAPIServer(":8080", db)
-	server.Run()
+	err = server.Run()
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func initStorage(db *sql.DB) {

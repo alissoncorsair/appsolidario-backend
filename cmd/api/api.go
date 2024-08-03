@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/alissoncorsair/appsolidario-backend/service/user"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 )
 
@@ -22,9 +23,18 @@ func NewAPIServer(addr string, db *sql.DB) *APIServer {
 
 func (s *APIServer) Run() error {
 	router := http.NewServeMux()
-	router.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+
+	apiRouter := http.NewServeMux()
+
+	apiRouter.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Hello, World!!"})
 	})
+
+	userStore := user.NewStore(s.db)
+	userHandler := user.NewHandler(userStore)
+	userHandler.RegisterRoutes(apiRouter)
+
+	router.Handle("/api/", http.StripPrefix("/api", apiRouter))
 
 	server := http.Server{
 		Addr:    s.addr,
