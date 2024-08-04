@@ -1,12 +1,12 @@
 -- Drop refresh token table
-DROP TABLE IF EXISTS "refresh_token";
+DROP TABLE IF EXISTS "refresh_tokens";
 
 -- Drop ProfilePicture Table
-DROP TABLE IF EXISTS "profile_picture";
+DROP TABLE IF EXISTS "profile_pictures";
 
 -- Drop User Table
-DROP TABLE IF EXISTS "user";
+DROP TABLE IF EXISTS "users";
 
 -- Drop Role Table
-DROP TABLE IF EXISTS "role";
+DROP TABLE IF EXISTS "roles";
 

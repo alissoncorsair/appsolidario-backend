@@ -57,10 +57,19 @@ type User struct {
 	BirthDate        time.Time  `json:"birth_date" validate:"required"`
 }
 
+type RefreshToken struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	Token     string    `json:"token"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 type UserStore interface {
-	// GetUserByEmail(email string) (*User, error)
+	GetUserByEmail(email string) (*User, error)
 	GetUserByID(id int) (*User, error)
-	CreateUser(user User) error
+	CreateUser(user *User) (*User, error)
+	GenerateToken(user *User) (string, error)
 }
 
 // ProfilePicture represents the profile picture entity.
@@ -80,8 +89,12 @@ type RegisterUserRequest struct {
 	PostalCode  string `json:"postal_code" validate:"required,len=8"`
 	City        string `json:"city" validate:"required,max=100"`
 	State       string `json:"state" validate:"required,max=100"`
-	CPF         string `json:"cpf" validate:"required,len=11"`
+	CPF         string `json:"cpf" validate:"required,min=11,max=14"`
 	RoleID      int    `json:"role_id" validate:"required,oneof=1 2"`
-	Points      int    `json:"points" validate:"gte=0"`
-	BirthDate   string `json:"birth_date" validate:"required,datetime=2006-01-02"`
+	BirthDate   string `json:"birth_date" validate:"required"`
+}
+
+type LoginUserRequest struct {
+	CPF      string `json:"cpf" validate:"required,min=11,max=14"`
+	Password string `json:"password" validate:"required,min=6"`
 }

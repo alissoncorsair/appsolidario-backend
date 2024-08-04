@@ -20,9 +20,10 @@ func NewStore(db *sql.DB) *Store {
 func (s *Store) CreateUser(user *types.User) (*types.User, error) {
 	defaultStatus := types.StatusInactive
 	defaultPoints := 0
+
 	query := `
 		INSERT INTO users (name, email, password, status, description, postal_code, city, state, cpf, role_id, points, registration_date, birth_date)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id
 	`
 	var id int
@@ -50,4 +51,40 @@ func (s *Store) GetUserByEmail(email string) (*types.User, error) {
 	}
 
 	return &u, nil
+}
+
+func (s *Store) GetUserByCPF(cpf string) (*types.User, error) {
+	var u types.User
+	query := `
+	SELECT id, name, email, password, status, cpf, role_id, points
+	FROM users
+	WHERE cpf = $1
+`
+	err := s.db.QueryRow(query, cpf).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Status, &u.CPF, &u.RoleID, &u.Points)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &u, nil
+}
+
+func (s *Store) GetUserByID(id int) (*types.User, error) {
+	var u types.User
+	query := `
+	SELECT id, name, email, password, status, cpf, role_id, points
+	FROM users
+	WHERE id = $1
+`
+	err := s.db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Status, &u.CPF, &u.RoleID, &u.Points)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &u, nil
+}
+
+func (s *Store) GenerateToken(user *types.User) (string, error) {
+	return "", nil
 }

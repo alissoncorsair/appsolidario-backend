@@ -51,17 +51,6 @@ func CreateRefreshToken(secret []byte, userID int) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateRefreshToken(tokenString string) (*jwt.Token, error) {
-	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return []byte(config.Envs.JWTSecret), nil
-	})
-}
-
-// auth/auth.go
 func HandleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		RefreshToken string `json:"refresh_token"`
@@ -72,7 +61,7 @@ func HandleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := ValidateRefreshToken(request.RefreshToken)
+	token, err := validateToken(request.RefreshToken)
 	if err != nil || !token.Valid {
 		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid refresh token"))
 		return
