@@ -22,6 +22,12 @@ migration:
 migrate-up:
 	@go run cmd/migrate/main.go up
 
+migrate-up-docker:
+	@docker compose run --rm app go run cmd/migrate/main.go up
+
+migrate-down-docker:
+	@docker compose run --rm app go run cmd/migrate/main.go down
+
 migrate-down:
 	@go run cmd/migrate/main.go down
 

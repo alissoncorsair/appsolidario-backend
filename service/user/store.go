@@ -2,6 +2,7 @@ package user
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/alissoncorsair/appsolidario-backend/types"
 )
@@ -22,12 +23,12 @@ func (s *Store) CreateUser(user *types.User) (*types.User, error) {
 	defaultPoints := 0
 
 	query := `
-		INSERT INTO users (name, email, password, status, description, postal_code, city, state, cpf, role_id, points, registration_date, birth_date)
+		INSERT INTO users (name, surname, email, password, status, description, postal_code, city, state, cpf, role_id, points, birth_date)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id
 	`
 	var id int
-	err := s.db.QueryRow(query, user.Name, user.Email, user.Password, defaultStatus, user.Description, user.PostalCode, user.City, user.State, user.CPF, user.RoleID, defaultPoints, user.RegistrationDate, user.BirthDate).Scan(&id)
+	err := s.db.QueryRow(query, user.Name, user.Surname, user.Email, user.Password, defaultStatus, user.Description, user.PostalCode, user.City, user.State, user.CPF, user.RoleID, defaultPoints, user.BirthDate).Scan(&id)
 
 	if err != nil {
 		return nil, err
@@ -38,53 +39,63 @@ func (s *Store) CreateUser(user *types.User) (*types.User, error) {
 }
 
 func (s *Store) GetUserByEmail(email string) (*types.User, error) {
-	var u types.User
+	var u *types.User
 	query := `
-	SELECT id, name, email, password, status, cpf, role_id, points
+	SELECT id, name, surname, email, password, status, description, postal_code, city, state, cpf, role_id, points, birth_date, created_at, updated_at
 	FROM users
 	WHERE email = $1
-`
-	err := s.db.QueryRow(query, email).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Status, &u.CPF, &u.RoleID, &u.Points)
+	`
+	row := s.db.QueryRow(query, email)
+	u, err := ScanRowIntoUser(row)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &u, nil
+	return u, nil
 }
 
 func (s *Store) GetUserByCPF(cpf string) (*types.User, error) {
-	var u types.User
+	var u *types.User
 	query := `
-	SELECT id, name, email, password, status, cpf, role_id, points
+	SELECT id, name, surname, email, password, status, description, postal_code, city, state, cpf, role_id, points, birth_date, created_at, updated_at
 	FROM users
 	WHERE cpf = $1
-`
-	err := s.db.QueryRow(query, cpf).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Status, &u.CPF, &u.RoleID, &u.Points)
+	`
+	row := s.db.QueryRow(query, cpf)
+	u, err := ScanRowIntoUser(row)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &u, nil
+	return u, nil
 }
 
 func (s *Store) GetUserByID(id int) (*types.User, error) {
-	var u types.User
+	var u *types.User
 	query := `
-	SELECT id, name, email, password, status, cpf, role_id, points
+	SELECT id, name, surname, email, password, status, description, postal_code, city, state, cpf, role_id, points, birth_date, created_at, updated_at
 	FROM users
 	WHERE id = $1
-`
-	err := s.db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Status, &u.CPF, &u.RoleID, &u.Points)
+	`
+	row := s.db.QueryRow(query, id)
+	u, err := ScanRowIntoUser(row)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &u, nil
+	return u, nil
 }
 
-func (s *Store) GenerateToken(user *types.User) (string, error) {
-	return "", nil
+func ScanRowIntoUser(row *sql.Row) (*types.User, error) {
+	var u types.User
+	err := row.Scan(&u.ID, &u.Name, &u.Surname, &u.Email, &u.Password, &u.Status, &u.Description, &u.PostalCode, &u.City, &u.State, &u.CPF, &u.RoleID, &u.Points, &u.BirthDate, &u.CreatedAt, &u.UpdatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("error scanning user: %w", err)
+	}
+
+	return &u, nil
 }

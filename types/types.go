@@ -38,46 +38,43 @@ type Role struct {
 }
 
 // User represents the user entity.
-type User struct {
+type UserWithoutPassword struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name" validate:"required,min=3,max=100"`
 	Surname    string `json:"surname" validate:"required,min=3,max=100"`
 	Email      string `json:"email" validate:"required,email"`
-	Password   string `json:"password" validate:"required,min=6"`
 	PostalCode string `json:"postal_code" validate:"required,len=8"`
 	City       string `json:"city" validate:"required,max=100"`
 	// Street           string     `json:"street" validate:"required,max=255"`
-	State            string     `json:"state" validate:"required,max=100"`
-	Status           UserStatus `json:"status" validate:"required,oneof=0 1"` // 0 for inactive, 1 for active
-	Description      *string    `json:"description,omitempty" validate:"omitempty,max=1000"`
-	CPF              string     `json:"cpf" validate:"required,len=11"`
-	RoleID           UserRole   `json:"role_id" validate:"required"`
-	Points           int        `json:"points" validate:"gte=0"`
-	RegistrationDate time.Time  `json:"registration_date" validate:"required"`
-	BirthDate        time.Time  `json:"birth_date" validate:"required"`
+	State       string     `json:"state" validate:"required,max=100"`
+	Status      UserStatus `json:"status" validate:"required,oneof=0 1"` // 0 for inactive, 1 for active
+	Description *string    `json:"description,omitempty" validate:"omitempty,max=1000"`
+	CPF         string     `json:"cpf" validate:"required,len=11"`
+	RoleID      UserRole   `json:"role_id" validate:"required"`
+	Points      int        `json:"points" validate:"gte=0"`
+	BirthDate   time.Time  `json:"birth_date" validate:"required"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
-type RefreshToken struct {
-	ID        int       `json:"id"`
-	UserID    int       `json:"user_id"`
-	Token     string    `json:"token"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+type User struct {
+	UserWithoutPassword
+	Password string `json:"password"`
 }
 
 type UserStore interface {
 	GetUserByEmail(email string) (*User, error)
 	GetUserByID(id int) (*User, error)
 	CreateUser(user *User) (*User, error)
-	GenerateToken(user *User) (string, error)
 }
 
 // ProfilePicture represents the profile picture entity.
 type ProfilePicture struct {
-	ID         int       `json:"id"`
-	UserID     int       `json:"user_id"`
-	Path       string    `json:"path"`
-	UploadedAt time.Time `json:"uploaded_at"`
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	Path      string    `json:"path"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type RegisterUserRequest struct {

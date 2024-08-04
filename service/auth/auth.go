@@ -20,10 +20,11 @@ type contextKey string
 const UserKey contextKey = "userID"
 
 func CreateJWT(secret []byte, userID int) (string, error) {
-	expiration := time.Second * time.Duration(config.Envs.JWTExpirationInSeconds)
+	expiration := time.Now().Add(time.Second * time.Duration(config.Envs.JWTExpirationInSeconds)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":    strconv.Itoa(userID),
-		"expiredAt": time.Now().Add(expiration).Unix(),
+		"exp":       expiration,
+		"tokenType": "access",
 	})
 
 	tokenString, err := token.SignedString(secret)
@@ -36,10 +37,11 @@ func CreateJWT(secret []byte, userID int) (string, error) {
 }
 
 func CreateRefreshToken(secret []byte, userID int) (string, error) {
-	expiration := time.Second * time.Duration(config.Envs.JWTRefreshExpirationInSeconds)
+	expiration := time.Now().Add(time.Second * time.Duration(config.Envs.JWTRefreshExpirationInSeconds)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":    strconv.Itoa(userID),
-		"expiredAt": time.Now().Add(expiration).Unix(),
+		"exp":       expiration,
+		"tokenType": "refresh",
 	})
 
 	tokenString, err := token.SignedString(secret)
@@ -61,7 +63,7 @@ func HandleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := validateToken(request.RefreshToken)
+	token, err := validateToken(request.RefreshToken, "refresh")
 	if err != nil || !token.Valid {
 		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid refresh token"))
 		return
@@ -107,8 +109,8 @@ func HandleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 func WithJWTAuth(handlerFunc http.HandlerFunc, store types.UserStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenString := getTokenFromRequest(r)
-
-		token, err := validateToken(tokenString)
+		//token is validating both access and refresh tokens, but it should only validate access tokens
+		token, err := validateToken(tokenString, "access")
 
 		if err != nil {
 			log.Printf("failed to validate token: %v", err)
@@ -156,29 +158,37 @@ func getTokenFromRequest(r *http.Request) string {
 	return tokenAuth
 }
 
-func validateToken(tokenString string) (*jwt.Token, error) {
-	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
+func validateToken(tokenString string, expectedType string) (*jwt.Token, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return []byte(config.Envs.JWTSecret), nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || claims["tokenType"] != expectedType {
+		return nil, fmt.Errorf("invalid token type")
+	}
+
+	return token, nil
 }
 
 func permissionDenied(w http.ResponseWriter) {
 	utils.WriteError(w, http.StatusForbidden, fmt.Errorf("permission denied"))
 }
 
-func GetUserIDFromContext(ctx context.Context) int {
+func GetUserIDFromContext(ctx context.Context) (int, bool) {
 	userID, ok := ctx.Value(UserKey).(int)
 	if !ok {
-		return -1
+		return -1, false
 	}
 
-	return userID
+	return userID, true
 }
 
 func HashPassword(password string) (string, error) {

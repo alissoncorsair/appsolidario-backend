@@ -1,5 +1,5 @@
 -- Drop refresh token table
-DROP TABLE IF EXISTS "refresh_tokens";
+-- DROP TABLE IF EXISTS "refresh_tokens";
 
 -- Drop ProfilePicture Table
 DROP TABLE IF EXISTS "profile_pictures";

@@ -71,17 +71,19 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	cpf = re.ReplaceAllString(payload.CPF, "")
 
 	user, err := h.store.CreateUser(&types.User{
-		Name:       payload.Name,
-		Surname:    payload.Surname,
-		Password:   hashedPass,
-		Email:      payload.Email,
-		PostalCode: payload.PostalCode,
-		State:      payload.State,
-		City:       payload.City,
-		Status:     types.StatusActive,
-		RoleID:     types.UserRole(payload.RoleID),
-		CPF:        cpf,
-		BirthDate:  birthDate,
+		UserWithoutPassword: types.UserWithoutPassword{
+			Name:       payload.Name,
+			Surname:    payload.Surname,
+			Email:      payload.Email,
+			PostalCode: payload.PostalCode,
+			State:      payload.State,
+			City:       payload.City,
+			Status:     types.StatusActive,
+			RoleID:     types.UserRole(payload.RoleID),
+			CPF:        cpf,
+			BirthDate:  birthDate,
+		},
+		Password: hashedPass,
 	})
 
 	if err != nil {
@@ -133,12 +135,32 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userInfo := types.UserWithoutPassword{
+		ID:          user.ID,
+		Name:        user.Name,
+		Surname:     user.Surname,
+		Email:       user.Email,
+		PostalCode:  user.PostalCode,
+		State:       user.State,
+		City:        user.City,
+		Status:      user.Status,
+		RoleID:      user.RoleID,
+		CPF:         user.CPF,
+		BirthDate:   user.BirthDate,
+		Description: user.Description,
+		Points:      user.Points,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+	}
+
 	response := struct {
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
+		AccessToken  string                    `json:"access_token"`
+		RefreshToken string                    `json:"refresh_token"`
+		User         types.UserWithoutPassword `json:"user"`
 	}{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		User:         userInfo,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, response)
@@ -146,9 +168,16 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleTest(w http.ResponseWriter, r *http.Request) {
+	userId, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
+	}
+
 	utils.WriteJSON(w, http.StatusOK, struct {
 		Message string `json:"message"`
 	}{
-		Message: "ta funfando pae",
+		Message: fmt.Sprintf("ta funfando pae, userId: %d", userId),
 	})
 }

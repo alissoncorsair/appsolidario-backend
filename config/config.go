@@ -27,7 +27,7 @@ func initConfig() *types.Config {
 		PostgresUser:                  getEnv("POSTGRES_USER", "postgres"),
 		PostgresDB:                    getEnv("POSTGRES_DB", "postgres"),
 		SSLMode:                       getEnv("POSTGRES_SSL_MODE", "disable"),
-		JWTExpirationInSeconds:        getEnvAsInt64("JWT_EXPIRATION_IN_SECONDS", 3600),
+		JWTExpirationInSeconds:        getEnvAsInt64("JWT_EXPIRATION_IN_SECONDS", 30),
 		JWTSecret:                     getEnv("JWT_SECRET", "secret"),
 		JWTRefreshExpirationInSeconds: getEnvAsInt64("JWT_REFRESH_EXPIRATION_IN_SECONDS", 60),
 	}
