@@ -51,6 +51,13 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = h.store.GetUserByCPF(payload.CPF)
+
+	if err == nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with cpf %s already exists", payload.CPF))
+		return
+	}
+
 	hashedPass, err := auth.HashPassword(payload.Password)
 
 	if err != nil {

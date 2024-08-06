@@ -43,7 +43,7 @@ type UserWithoutPassword struct {
 	Name       string `json:"name" validate:"required,min=3,max=100"`
 	Surname    string `json:"surname" validate:"required,min=3,max=100"`
 	Email      string `json:"email" validate:"required,email"`
-	PostalCode string `json:"postal_code" validate:"required,len=8"`
+	PostalCode string `json:"postal_code" validate:"required,min=8,max=9"`
 	City       string `json:"city" validate:"required,max=100"`
 	// Street           string     `json:"street" validate:"required,max=255"`
 	State       string     `json:"state" validate:"required,max=100"`
@@ -83,7 +83,7 @@ type RegisterUserRequest struct {
 	Email       string `json:"email" validate:"required,email"`
 	Password    string `json:"password" validate:"required,min=6"`
 	Description string `json:"description" validate:"omitempty,max=1000"`
-	PostalCode  string `json:"postal_code" validate:"required,len=8"`
+	PostalCode  string `json:"postal_code" validate:"required,min=8,max=9"`
 	City        string `json:"city" validate:"required,max=100"`
 	State       string `json:"state" validate:"required,max=100"`
 	CPF         string `json:"cpf" validate:"required,min=11,max=14"`
