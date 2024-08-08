@@ -87,7 +87,7 @@ type RegisterUserRequest struct {
 	City        string `json:"city" validate:"required,max=100"`
 	State       string `json:"state" validate:"required,max=100"`
 	CPF         string `json:"cpf" validate:"required,min=11,max=14"`
-	RoleID      int    `json:"role_id" validate:"required,oneof=1 2"`
+	RoleID      int    `json:"role_id,string" validate:"required,oneof=1 2"`
 	BirthDate   string `json:"birth_date" validate:"required"`
 }
 

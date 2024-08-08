@@ -38,13 +38,23 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var roleID int
+	roleID, err := utils.GetInt(payload.RoleID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid role id"))
+		return
+	}
+
+	payload.RoleID = roleID
+
 	if err := utils.Validate.Struct(payload); err != nil {
 		errors := err.(validator.ValidationErrors)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload %v", errors))
 		return
 	}
 
-	_, err := h.store.GetUserByEmail(payload.Email)
+	_, err = h.store.GetUserByEmail(payload.Email)
 
 	if err == nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email))
@@ -115,14 +125,18 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.store.GetUserByCPF(payload.CPF)
+	var cpf string
+	re := regexp.MustCompile("[^0-9]")
+	cpf = re.ReplaceAllString(payload.CPF, "")
+
+	user, err := h.store.GetUserByCPF(cpf)
 
 	if err != nil {
 		//should not tell if the user exists or not
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid cpf/password"))
 		return
 	}
-	fmt.Println(user.Password)
+
 	if !auth.ComparePassword(user.Password, []byte(payload.Password)) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid cpf/password"))
 		return

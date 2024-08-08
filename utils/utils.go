@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -29,4 +30,19 @@ func WriteError(w http.ResponseWriter, status int, err error) {
 	WriteJSON(w, status, map[string]string{
 		"error": err.Error(),
 	})
+}
+
+func GetInt(v interface{}) (int, error) {
+	switch v := v.(type) {
+	case float64:
+		return int(v), nil
+	case string:
+		c, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, err
+		}
+		return c, nil
+	default:
+		return 0, fmt.Errorf("conversion to int from %T not supported", v)
+	}
 }
