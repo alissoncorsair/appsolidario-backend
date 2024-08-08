@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/alissoncorsair/appsolidario-backend/config"
@@ -154,6 +155,9 @@ func WithJWTAuth(handlerFunc http.HandlerFunc, store types.UserStore) http.Handl
 
 func getTokenFromRequest(r *http.Request) string {
 	tokenAuth := r.Header.Get("Authorization")
+	prefix := "Bearer "
+
+	tokenAuth = strings.TrimPrefix(tokenAuth, prefix)
 
 	return tokenAuth
 }

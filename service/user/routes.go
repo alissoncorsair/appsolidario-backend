@@ -27,6 +27,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
 	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
+	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleProfile, h.store))
 	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.store))
 }
 
@@ -187,6 +188,40 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusOK, response)
 
+}
+
+func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
+	userId, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
+	}
+
+	user, err := h.store.GetUserByID(userId)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	userWithoutPassword := types.UserWithoutPassword{
+		ID:          user.ID,
+		Name:        user.Name,
+		Surname:     user.Surname,
+		Email:       user.Email,
+		PostalCode:  user.PostalCode,
+		State:       user.State,
+		City:        user.City,
+		Status:      user.Status,
+		RoleID:      user.RoleID,
+		CPF:         user.CPF,
+		BirthDate:   user.BirthDate,
+		Description: user.Description,
+		Points:      user.Points,
+	}
+
+	utils.WriteJSON(w, http.StatusOK, userWithoutPassword)
 }
 
 func (h *Handler) HandleTest(w http.ResponseWriter, r *http.Request) {
