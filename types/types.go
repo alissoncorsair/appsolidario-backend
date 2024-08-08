@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Config holds the configuration details for the database connection.
 type Config struct {
@@ -78,17 +81,17 @@ type ProfilePicture struct {
 }
 
 type RegisterUserRequest struct {
-	Name        string `json:"name" validate:"required,min=3,max=100"`
-	Surname     string `json:"surname" validate:"required,min=3,max=100"`
-	Email       string `json:"email" validate:"required,email"`
-	Password    string `json:"password" validate:"required,min=6"`
-	Description string `json:"description" validate:"omitempty,max=1000"`
-	PostalCode  string `json:"postal_code" validate:"required,min=8,max=9"`
-	City        string `json:"city" validate:"required,max=100"`
-	State       string `json:"state" validate:"required,max=100"`
-	CPF         string `json:"cpf" validate:"required,min=11,max=14"`
-	RoleID      int    `json:"role_id,string" validate:"required,oneof=1 2"`
-	BirthDate   string `json:"birth_date" validate:"required"`
+	Name        string      `json:"name" validate:"required,min=3,max=100"`
+	Surname     string      `json:"surname" validate:"required,min=3,max=100"`
+	Email       string      `json:"email" validate:"required,email"`
+	Password    string      `json:"password" validate:"required,min=6"`
+	Description string      `json:"description" validate:"omitempty,max=1000"`
+	PostalCode  string      `json:"postal_code" validate:"required,min=8,max=9"`
+	City        string      `json:"city" validate:"required,max=100"`
+	State       string      `json:"state" validate:"required,max=100"`
+	CPF         string      `json:"cpf" validate:"required,min=11,max=14"`
+	RoleID      json.Number `json:"role_id,string" validate:"required,oneof=1 2"`
+	BirthDate   string      `json:"birth_date" validate:"required"`
 }
 
 type LoginUserRequest struct {

@@ -38,23 +38,13 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var roleID int
-	roleID, err := utils.GetInt(payload.RoleID)
-
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid role id"))
-		return
-	}
-
-	payload.RoleID = roleID
-
 	if err := utils.Validate.Struct(payload); err != nil {
 		errors := err.(validator.ValidationErrors)
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload %v", errors))
 		return
 	}
 
-	_, err = h.store.GetUserByEmail(payload.Email)
+	_, err := h.store.GetUserByEmail(payload.Email)
 
 	if err == nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email))
@@ -87,6 +77,14 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	re := regexp.MustCompile("[^0-9]")
 	cpf = re.ReplaceAllString(payload.CPF, "")
 
+	var roleID int
+	roleID, err = utils.GetInt(payload.RoleID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	user, err := h.store.CreateUser(&types.User{
 		UserWithoutPassword: types.UserWithoutPassword{
 			Name:       payload.Name,
@@ -96,7 +94,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 			State:      payload.State,
 			City:       payload.City,
 			Status:     types.StatusActive,
-			RoleID:     types.UserRole(payload.RoleID),
+			RoleID:     types.UserRole(roleID),
 			CPF:        cpf,
 			BirthDate:  birthDate,
 		},

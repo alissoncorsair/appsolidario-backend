@@ -42,7 +42,14 @@ func GetInt(v interface{}) (int, error) {
 			return 0, err
 		}
 		return c, nil
+	case json.Number:
+		c, err := v.Int64()
+		if err != nil {
+			return 0, err
+		}
+		return int(c), nil
 	default:
+		fmt.Println(v)
 		return 0, fmt.Errorf("conversion to int from %T not supported", v)
 	}
 }
