@@ -86,12 +86,14 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	postalCode := re.ReplaceAllString(payload.PostalCode, "")
+
 	user, err := h.store.CreateUser(&types.User{
 		UserWithoutPassword: types.UserWithoutPassword{
 			Name:       payload.Name,
 			Surname:    payload.Surname,
 			Email:      payload.Email,
-			PostalCode: payload.PostalCode,
+			PostalCode: postalCode,
 			State:      payload.State,
 			City:       payload.City,
 			Status:     types.StatusActive,
