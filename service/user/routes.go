@@ -51,7 +51,11 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.store.GetUserByCPF(payload.CPF)
+	var cpf string
+	re := regexp.MustCompile("[^0-9]")
+	cpf = re.ReplaceAllString(payload.CPF, "")
+
+	_, err = h.store.GetUserByCPF(cpf)
 
 	if err == nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with cpf %s already exists", payload.CPF))
@@ -72,10 +76,6 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("invalid birth date"))
 		return
 	}
-
-	var cpf string
-	re := regexp.MustCompile("[^0-9]")
-	cpf = re.ReplaceAllString(payload.CPF, "")
 
 	var roleID int
 	roleID, err = utils.GetInt(payload.RoleID)
