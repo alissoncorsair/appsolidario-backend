@@ -70,7 +70,8 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var birthDate time.Time
-	birthDate, err = time.Parse("2006-01-02", payload.BirthDate)
+
+	birthDate, err = utils.ParseDate(payload.BirthDate)
 
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("invalid birth date"))

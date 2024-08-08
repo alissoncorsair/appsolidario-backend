@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -52,4 +53,30 @@ func GetInt(v interface{}) (int, error) {
 		fmt.Println(v)
 		return 0, fmt.Errorf("conversion to int from %T not supported", v)
 	}
+}
+
+func ParseDate(date string) (time.Time, error) {
+	formats := []string{
+		"2006-01-02",
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05.999Z",
+	}
+
+	var t time.Time
+	var err error
+
+	for _, f := range formats {
+		t, err = time.Parse(f, date)
+		if err == nil {
+			break
+		}
+	}
+
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid date format")
+	}
+
+	return t, nil
+
 }
