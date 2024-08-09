@@ -48,7 +48,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	_, err := h.store.GetUserByEmail(payload.Email)
 
 	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("o email %s já foi cadastrado", payload.Email))
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	_, err = h.store.GetUserByCPF(cpf)
 
 	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with cpf %s already exists", payload.CPF))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("o cpf %s já foi cadastrado", payload.CPF))
 		return
 	}
 
@@ -135,12 +135,12 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		//should not tell if the user exists or not
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid cpf/password"))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("CPF/Senha inválidos"))
 		return
 	}
 
 	if !auth.ComparePassword(user.Password, []byte(payload.Password)) {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid cpf/password"))
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("CPF/Senha inválidos"))
 		return
 	}
 
@@ -158,32 +158,12 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userInfo := types.UserWithoutPassword{
-		ID:          user.ID,
-		Name:        user.Name,
-		Surname:     user.Surname,
-		Email:       user.Email,
-		PostalCode:  user.PostalCode,
-		State:       user.State,
-		City:        user.City,
-		Status:      user.Status,
-		RoleID:      user.RoleID,
-		CPF:         user.CPF,
-		BirthDate:   user.BirthDate,
-		Description: user.Description,
-		Points:      user.Points,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
-
 	response := struct {
-		AccessToken  string                    `json:"access_token"`
-		RefreshToken string                    `json:"refresh_token"`
-		User         types.UserWithoutPassword `json:"user"`
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
 	}{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		User:         userInfo,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, response)
@@ -219,6 +199,8 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		BirthDate:   user.BirthDate,
 		Description: user.Description,
 		Points:      user.Points,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, userWithoutPassword)
