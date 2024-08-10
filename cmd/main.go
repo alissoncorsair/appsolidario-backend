@@ -21,7 +21,7 @@ func main() {
 
 	initStorage(db)
 
-	server := api.NewAPIServer(":8080", db)
+	server := api.NewAPIServer("0.0.0.0:8080", db)
 	err = server.Run()
 
 	if err != nil {
