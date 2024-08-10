@@ -39,6 +39,9 @@ CREATE TABLE "profile_pictures" (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_user_id ON "profile_pictures"(user_id);
+
+
 -- Create refresh token table
 -- CREATE TABLE "refresh_tokens" (
 --   id SERIAL PRIMARY KEY,

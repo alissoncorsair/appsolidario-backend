@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/alissoncorsair/appsolidario-backend/service/profile_picture"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 )
 
@@ -87,6 +88,24 @@ func (s *Store) GetUserByID(id int) (*types.User, error) {
 	}
 
 	return u, nil
+}
+
+func (s *Store) GetUserProfilePicture(userID int) (*types.ProfilePicture, error) {
+	var pp *types.ProfilePicture
+	query := `
+	SELECT id, user_id, path, created_at, updated_at
+	FROM profile_pictures
+	WHERE user_id = $1
+	`
+	row := s.db.QueryRow(query, userID)
+
+	pp, err := profile_picture.ScanRowIntoProfilePicture(row)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pp, nil
 }
 
 func ScanRowIntoUser(row *sql.Row) (*types.User, error) {

@@ -170,6 +170,11 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type UserResponse struct {
+	types.UserWithoutPassword
+	ProfilePictureURL string `json:"profile_picture_url"`
+}
+
 func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	userId, found := auth.GetUserIDFromContext(r.Context())
 
@@ -183,6 +188,19 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	profilePicture, err := h.store.GetUserProfilePicture(user.ID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	profilePictureURL := ""
+
+	if profilePicture != nil {
+		profilePictureURL = profilePicture.Path
 	}
 
 	userWithoutPassword := types.UserWithoutPassword{
@@ -203,7 +221,12 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:   user.UpdatedAt,
 	}
 
-	utils.WriteJSON(w, http.StatusOK, userWithoutPassword)
+	response := UserResponse{
+		userWithoutPassword,
+		profilePictureURL,
+	}
+
+	utils.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *Handler) HandleTest(w http.ResponseWriter, r *http.Request) {
