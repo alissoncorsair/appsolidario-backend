@@ -22,6 +22,7 @@ const UserKey contextKey = "userID"
 
 func CreateJWT(secret []byte, userID int) (string, error) {
 	expiration := time.Now().Add(time.Second * time.Duration(config.Envs.JWTExpirationInSeconds)).Unix()
+	fmt.Println("config.Envs.JWTExpirationInSeconds", config.Envs.JWTExpirationInSeconds)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":    strconv.Itoa(userID),
 		"exp":       expiration,
@@ -175,7 +176,7 @@ func validateToken(tokenString string, expectedType types.TokenType) (*jwt.Token
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || claims["tokenType"] != expectedType {
+	if !ok || claims["tokenType"].(string) != string(expectedType) {
 		return nil, fmt.Errorf("invalid token type")
 	}
 
