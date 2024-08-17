@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alissoncorsair/appsolidario-backend/config"
+	"github.com/alissoncorsair/appsolidario-backend/service/token"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 	"github.com/golang-jwt/jwt/v5"
@@ -20,30 +21,17 @@ type contextKey string
 
 const UserKey contextKey = "userID"
 
-func CreateJWT(secret []byte, userID int) (string, error) {
-	expiration := time.Now().Add(time.Second * time.Duration(config.Envs.JWTExpirationInSeconds)).Unix()
-	fmt.Println("config.Envs.JWTExpirationInSeconds", config.Envs.JWTExpirationInSeconds)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userID":    strconv.Itoa(userID),
-		"exp":       expiration,
-		"tokenType": types.TokenTypeAccess,
-	})
-
-	tokenString, err := token.SignedString(secret)
-
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
+func StoreToken(store token.Store, token *types.Token) error {
+	_, err := store.CreateToken(token)
+	return err
 }
 
-func CreateRefreshToken(secret []byte, userID int) (string, error) {
-	expiration := time.Now().Add(time.Second * time.Duration(config.Envs.JWTRefreshExpirationInSeconds)).Unix()
+func CreateJWT(secret []byte, userID int, tokenType types.TokenType, expiration time.Duration) (string, error) {
+	expirationTime := time.Now().Add(expiration).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":    strconv.Itoa(userID),
-		"exp":       expiration,
-		"tokenType": types.TokenTypeRefresh,
+		"exp":       expirationTime,
+		"tokenType": tokenType,
 	})
 
 	tokenString, err := token.SignedString(secret)
@@ -85,13 +73,13 @@ func HandleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new access token and refresh token
-	accessToken, err := CreateJWT([]byte(config.Envs.JWTSecret), userID)
+	accessToken, err := CreateJWT([]byte(config.Envs.JWTSecret), userID, types.TokenTypeAccess, time.Duration(config.Envs.JWTExpirationInSeconds)*time.Second)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("could not generate access token"))
 		return
 	}
 
-	refreshToken, err := CreateRefreshToken([]byte(config.Envs.JWTSecret), userID)
+	refreshToken, err := CreateJWT([]byte(config.Envs.JWTSecret), userID, types.TokenTypeRefresh, time.Duration(config.Envs.JWTRefreshExpirationInSeconds)*time.Second)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("could not generate refresh token"))
 		return

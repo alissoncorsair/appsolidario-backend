@@ -102,7 +102,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 			PostalCode: postalCode,
 			State:      payload.State,
 			City:       payload.City,
-			Status:     types.StatusActive,
+			Status:     types.StatusInactive,
 			RoleID:     types.UserRole(roleID),
 			CPF:        cpf,
 			BirthDate:  birthDate,
@@ -114,6 +114,10 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// _, err = auth.StoreToken(h.store, &types.Token{
+	// 	UserID:    user.ID,
+	// 	Token: auth.
 
 	utils.WriteJSON(w, http.StatusCreated, user)
 }
@@ -149,14 +153,14 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID)
+	accessToken, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID, types.TokenTypeAccess, time.Duration(config.Envs.JWTExpirationInSeconds)*time.Second)
 
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	refreshToken, err := auth.CreateRefreshToken([]byte(config.Envs.JWTSecret), user.ID)
+	refreshToken, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID, types.TokenTypeRefresh, time.Duration(config.Envs.JWTRefreshExpirationInSeconds)*time.Second)
 
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
