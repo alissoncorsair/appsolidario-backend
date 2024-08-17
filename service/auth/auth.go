@@ -25,7 +25,7 @@ func CreateJWT(secret []byte, userID int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":    strconv.Itoa(userID),
 		"exp":       expiration,
-		"tokenType": "access",
+		"tokenType": types.TokenTypeAccess,
 	})
 
 	tokenString, err := token.SignedString(secret)
@@ -42,7 +42,7 @@ func CreateRefreshToken(secret []byte, userID int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID":    strconv.Itoa(userID),
 		"exp":       expiration,
-		"tokenType": "refresh",
+		"tokenType": types.TokenTypeRefresh,
 	})
 
 	tokenString, err := token.SignedString(secret)
@@ -64,7 +64,7 @@ func HandleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := validateToken(request.RefreshToken, "refresh")
+	token, err := validateToken(request.RefreshToken, types.TokenTypeRefresh)
 	if err != nil || !token.Valid {
 		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid refresh token"))
 		return
@@ -162,7 +162,7 @@ func getTokenFromRequest(r *http.Request) string {
 	return tokenAuth
 }
 
-func validateToken(tokenString string, expectedType string) (*jwt.Token, error) {
+func validateToken(tokenString string, expectedType types.TokenType) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

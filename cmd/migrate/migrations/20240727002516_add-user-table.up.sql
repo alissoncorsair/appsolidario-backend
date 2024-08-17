@@ -1,15 +1,5 @@
--- Create Role Table
-CREATE TABLE "roles" (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(50) UNIQUE NOT NULL
-);
-
--- Insert default roles role payee 1 role payer 2
-INSERT INTO "roles" (name) VALUES ('payee'), ('payer');
-
-
 -- Create User Table
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   surname VARCHAR(100) NOT NULL,
@@ -21,17 +11,15 @@ CREATE TABLE "users" (
   city VARCHAR(100) NOT NULL,
   state VARCHAR(100) NOT NULL,
   cpf CHAR(11) UNIQUE NOT NULL,
-  role_id INT REFERENCES "roles"(id),
+  role_id INT NOT NULL,
   points INT DEFAULT 0,
   birth_date DATE NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
-
 -- Create ProfilePicture Table
-CREATE TABLE "profile_pictures" (
+CREATE TABLE IF NOT EXISTS "profile_pictures" (
   id SERIAL PRIMARY KEY,
   user_id INT REFERENCES "users"(id) ON DELETE CASCADE,
   path VARCHAR(255) NOT NULL,

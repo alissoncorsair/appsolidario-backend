@@ -34,11 +34,14 @@ const (
 	StatusActive   UserStatus = 1
 )
 
-// Role represents the role entity.
-type Role struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
+type TokenType string
+
+const (
+	TokenTypeAccess  TokenType = "access"
+	TokenTypeRefresh TokenType = "refresh"
+	TokenTypeReset   TokenType = "reset"
+	TokenTypeVerify  TokenType = "verify"
+)
 
 // User represents the user entity.
 type UserWithoutPassword struct {
@@ -63,6 +66,15 @@ type UserWithoutPassword struct {
 type User struct {
 	UserWithoutPassword
 	Password string `json:"password"`
+}
+
+type Token struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	Token     string    `json:"token"`
+	Type      TokenType `json:"type"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type UserStore interface {
@@ -90,7 +102,7 @@ type RegisterUserRequest struct {
 	City        string      `json:"city" validate:"required,max=100"`
 	State       string      `json:"state" validate:"required,max=100"`
 	CPF         string      `json:"cpf" validate:"required,min=11,max=14"`
-	RoleID      json.Number `json:"role_id,string" validate:"required,oneof=1 2"`
+	RoleID      json.Number `json:"role_id,string" validate:"required"`
 	BirthDate   string      `json:"birth_date" validate:"required"`
 }
 

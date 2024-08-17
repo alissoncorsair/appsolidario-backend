@@ -82,6 +82,11 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	var roleID int
 	roleID, err = utils.GetInt(payload.RoleID)
 
+	if roleID != int(types.RolePayee) && roleID != int(types.RolePayer) {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid role id"))
+		return
+	}
+
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
@@ -168,6 +173,10 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusOK, response)
 
+}
+
+func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
+	//must be implemented
 }
 
 type UserResponse struct {
