@@ -11,7 +11,7 @@ services:
   database:
     container_name: database
     image: 'postgres:latest'
-    ports:
+    ports: 
       - "5432:5432"
     env_file:
       - .env
