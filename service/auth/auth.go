@@ -53,7 +53,7 @@ func HandleTokenRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := validateToken(request.RefreshToken, types.TokenTypeRefresh)
+	token, err := ValidateToken(request.RefreshToken, types.TokenTypeRefresh)
 	if err != nil || !token.Valid {
 		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid refresh token"))
 		return
@@ -100,7 +100,7 @@ func WithJWTAuth(handlerFunc http.HandlerFunc, store types.UserStore) http.Handl
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenString := getTokenFromRequest(r)
 		//token is validating both access and refresh tokens, but it should only validate access tokens
-		token, err := validateToken(tokenString, "access")
+		token, err := ValidateToken(tokenString, types.TokenTypeAccess)
 
 		if err != nil {
 			log.Printf("failed to validate token: %v", err)
@@ -151,7 +151,7 @@ func getTokenFromRequest(r *http.Request) string {
 	return tokenAuth
 }
 
-func validateToken(tokenString string, expectedType types.TokenType) (*jwt.Token, error) {
+func ValidateToken(tokenString string, expectedType types.TokenType) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

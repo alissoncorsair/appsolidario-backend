@@ -1,57 +1,30 @@
-build:
-	@go build -o bin/main cmd/main.go
+# Build Docker containers
+docker-build:
+	@echo "Building Docker containers..."
+	@docker compose build
 
-build-docker-compose:
-	@docker-compose build
+# Run Docker containers
+docker-up: docker-build
+	@echo "Starting Docker containers..."
+	@docker compose up -d
 
-test:
-	@go test -v ./...
-	
-run: build
-	@./bin/main
-
-run-hotreload:
-	@air -c .air.toml
-
-run-docker-compose: build-docker-compose
-	@docker-compose up -d
-
-migration:
-	@migrate create -ext sql -dir cmd/migrate/migrations $(filter-out $@,$(MAKECMDGOALS))
-
-migrate-up:
-	@go run cmd/migrate/main.go up
-
-migrate-up-docker:
+# Run migrations (Docker)
+docker-migrate-up:
+	@echo "Running migrations in Docker..."
 	@docker compose run --rm app go run cmd/migrate/main.go up
 
-migrate-down-docker:
+# Rollback migrations (Docker)
+docker-migrate-down:
+	@echo "Rolling back migrations in Docker..."
 	@docker compose run --rm app go run cmd/migrate/main.go down
 
-migrate-down:
-	@go run cmd/migrate/main.go down
+# Show help
+help:
+	@echo "Available commands:"
+	@echo "  make docker-build       - Build Docker containers"
+	@echo "  make docker-up          - Build and start Docker containers"
+	@echo "  make docker-migrate-up  - Run migrations (Docker)"
+	@echo "  make docker-migrate-down- Rollback migrations (Docker)"
+	@echo "  make help               - Show this help message"
 
-
-# build:
-# 	@docker compose build
-
-# build-docker-compose:
-# 	@docker compose build
-
-# test:
-# 	@docker compose run --rm app go test -v ./...
-
-# run: build
-# 	@docker compose up -d
-
-# run-docker-compose: build-docker-compose
-# 	@docker compose up -d
-
-# migration:
-# 	@docker compose run --rm app migrate create -ext sql -dir cmd/migrate/migrations $(filter-out $@,$(MAKECMDGOALS))
-
-# migrate-up:
-# 	@docker compose run --rm app go run cmd/migrate/main.go up
-
-# migrate-down:
-# 	@docker compose run --rm app go run cmd/migrate/main.go down
+.PHONY: docker-build docker-up docker-migrate-up docker-migrate-down help

@@ -108,6 +108,29 @@ func (s *Store) GetUserProfilePicture(userID int) (*types.ProfilePicture, error)
 	return pp, nil
 }
 
+func (s *Store) UpdateUserStatus(userID int, status types.UserStatus) error {
+	query := `
+	UPDATE users
+	SET status = $1, updated_at = NOW()
+	WHERE id = $2
+	`
+	result, err := s.db.Exec(query, status, userID)
+	if err != nil {
+		return fmt.Errorf("error updating user status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
 func ScanRowIntoUser(row *sql.Row) (*types.User, error) {
 	var u types.User
 	err := row.Scan(&u.ID, &u.Name, &u.Surname, &u.Email, &u.Password, &u.Status, &u.Description, &u.PostalCode, &u.City, &u.State, &u.CPF, &u.RoleID, &u.Points, &u.BirthDate, &u.CreatedAt, &u.UpdatedAt)

@@ -33,6 +33,15 @@ func (s *Store) CreateToken(token *types.Token) (*types.Token, error) {
 	return token, nil
 }
 
+func (s *Store) GetToken(token string) (*types.Token, error) {
+	query := `
+		SELECT * FROM tokens WHERE token = $1
+	`
+
+	row := s.db.QueryRow(query, token)
+	return ScanRowIntoToken(row)
+}
+
 func ScanRowIntoToken(row *sql.Row) (*types.Token, error) {
 	var t types.Token
 	err := row.Scan(&t.ID, &t.UserID, &t.Token, &t.Type, &t.CreatedAt, &t.ExpiresAt)

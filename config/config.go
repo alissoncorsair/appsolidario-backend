@@ -30,6 +30,10 @@ func initConfig() *types.Config {
 		JWTExpirationInSeconds:        getEnvAsInt64("JWT_EXPIRATION_IN_SECONDS", 30),
 		JWTSecret:                     getEnv("JWT_SECRET", "secret"),
 		JWTRefreshExpirationInSeconds: getEnvAsInt64("JWT_REFRESH_EXPIRATION_IN_SECONDS", 60),
+		SendgridApiKey:                getEnv("SENDGRID_API_KEY", ""),
+		EmailFrom:                     getEnv("EMAIL_FROM", ""),
+		EmailFromName:                 getEnv("EMAIL_FROM_NAME", ""),
+		EmailVerifyUrl:                getEnv("EMAIL_VERIFY_URL", ""),
 	}
 }
 

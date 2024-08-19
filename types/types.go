@@ -16,6 +16,10 @@ type Config struct {
 	JWTExpirationInSeconds        int64
 	JWTRefreshExpirationInSeconds int64
 	JWTSecret                     string
+	SendgridApiKey                string
+	EmailFrom                     string
+	EmailFromName                 string
+	EmailVerifyUrl                string
 }
 
 // UserRole defines the role of a user.

@@ -4,22 +4,27 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/service/auth"
+	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Handler struct {
-	store *Store
+	userStore *Store
+	mailer    mailer.Mailer
 }
 
-func NewHandler(store *Store) *Handler {
+func NewHandler(userStore *Store, mailer mailer.Mailer) *Handler {
 	return &Handler{
-		store: store,
+		userStore: userStore,
+		mailer:    mailer,
 	}
 }
 
@@ -27,8 +32,9 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
 	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
-	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleProfile, h.store))
-	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.store))
+	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleProfile, h.userStore))
+	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.userStore))
+	router.HandleFunc("GET /verify-email", h.HandleVerify)
 }
 
 func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +51,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.store.GetUserByEmail(payload.Email)
+	_, err := h.userStore.GetUserByEmail(payload.Email)
 
 	if err == nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("o email %s já foi cadastrado", payload.Email))
@@ -56,7 +62,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	re := regexp.MustCompile("[^0-9]")
 	cpf = re.ReplaceAllString(payload.CPF, "")
 
-	_, err = h.store.GetUserByCPF(cpf)
+	_, err = h.userStore.GetUserByCPF(cpf)
 
 	if err == nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("o cpf %s já foi cadastrado", payload.CPF))
@@ -94,7 +100,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	postalCode := re.ReplaceAllString(payload.PostalCode, "")
 
-	user, err := h.store.CreateUser(&types.User{
+	user, err := h.userStore.CreateUser(&types.User{
 		UserWithoutPassword: types.UserWithoutPassword{
 			Name:       payload.Name,
 			Surname:    payload.Surname,
@@ -115,9 +121,18 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// _, err = auth.StoreToken(h.store, &types.Token{
-	// 	UserID:    user.ID,
-	// 	Token: auth.
+	activationToken, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID, types.TokenTypeVerify, time.Hour*24)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = h.mailer.SendConfirmationEmail(user, activationToken)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to send confirmation email: %w", err))
+		return
+	}
 
 	utils.WriteJSON(w, http.StatusCreated, user)
 }
@@ -140,7 +155,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	re := regexp.MustCompile("[^0-9]")
 	cpf = re.ReplaceAllString(payload.CPF, "")
 
-	user, err := h.store.GetUserByCPF(cpf)
+	user, err := h.userStore.GetUserByCPF(cpf)
 
 	if err != nil {
 		//should not tell if the user exists or not
@@ -150,6 +165,11 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if !auth.ComparePassword(user.Password, []byte(payload.Password)) {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("CPF/Senha inválidos"))
+		return
+	}
+
+	if user.Status == types.StatusInactive {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("email not verified"))
 		return
 	}
 
@@ -180,7 +200,55 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
-	//must be implemented
+	token := r.URL.Query().Get("token")
+
+	if token == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("token is required"))
+		return
+	}
+
+	validatedToken, err := auth.ValidateToken(token, types.TokenTypeVerify)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid token"))
+		return
+	}
+
+	claims, ok := validatedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("invalid token claims"))
+		return
+	}
+
+	userIDStr, ok := claims["userID"].(string)
+	if !ok {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("invalid user ID in token"))
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("invalid user ID format"))
+		return
+	}
+
+	user, err := h.userStore.GetUserByID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if user.Status == types.StatusActive {
+		utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Email already verified"})
+		return
+	}
+
+	err = h.userStore.UpdateUserStatus(userID, types.StatusActive)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Email verified successfully"})
 }
 
 type UserResponse struct {
@@ -196,14 +264,14 @@ func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.store.GetUserByID(userId)
+	user, err := h.userStore.GetUserByID(userId)
 
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	profilePicture, err := h.store.GetUserProfilePicture(user.ID)
+	profilePicture, err := h.userStore.GetUserProfilePicture(user.ID)
 
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)

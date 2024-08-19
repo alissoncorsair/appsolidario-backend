@@ -18,3 +18,27 @@ cd appsolidario-backend
 docker compose up -d (para rodar o app + banco)
 make migrate-up-docker (para rodar as migrations e criar as tabelas)
 ```
+
+### 2. Setup do ambiente
+
+Copie o arquivo `.env.example` para `.env` e preencha com as variáveis de ambiente necessárias.
+
+```sh
+cp .env.example .env
+```
+
+### 3. Iniciar o projeto
+
+Execute o comando abaixo para iniciar o projeto:
+
+```sh
+make docker-up
+```
+
+### 4. Rodar as migrations
+
+Após rodar o comando acima, rode o comando abaixo para rodar as migrations:
+
+```sh
+make docker-migrate-up
+```

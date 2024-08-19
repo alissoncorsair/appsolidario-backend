@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -17,9 +18,9 @@ type SendGridMailer struct {
 	Client *sendgrid.Client
 }
 
-func NewSendGridMailer(from, apiKey string) *SendGridMailer {
+func NewSendGridMailer(apiKey, fromEmail string) *SendGridMailer {
 	return &SendGridMailer{
-		From:   from,
+		From:   fromEmail,
 		Client: sendgrid.NewSendClient(apiKey),
 	}
 }
@@ -30,17 +31,31 @@ func (m *SendGridMailer) SendConfirmationEmail(user *types.User, token string) e
 	userName := fmt.Sprintf("%s %s", user.Name, user.Surname)
 	to := mail.NewEmail(userName, user.Email)
 
-	body, err := BuildConfirmationEmail(user, token)
-
+	plainTextContent, err := BuildConfirmationEmail(user, token)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build confirmation email: %w", err)
 	}
 
-	message := mail.NewSingleEmail(from, subject, to, "", body)
+	htmlContent, err := BuildConfirmationEmail(user, token)
+	if err != nil {
+		return fmt.Errorf("failed to build confirmation email: %w", err)
+	}
 
-	_, err = m.Client.Send(message)
+	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 
-	return err
+	response, err := m.Client.Send(message)
+
+	if err != nil {
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	if response.StatusCode >= 400 {
+		return fmt.Errorf("failed to send email: %s", response.Body)
+	}
+
+	fmt.Printf("Email sent. Status Code: %d, Body: %s, Headers: %v\n", response.StatusCode, response.Body, response.Headers)
+
+	return nil
 }
 
 func BuildConfirmationEmail(user *types.User, token string) (string, error) {
@@ -49,7 +64,7 @@ func BuildConfirmationEmail(user *types.User, token string) (string, error) {
 		return "", err
 	}
 
-	URL := fmt.Sprintf("http://localhost:8080/confirm-email?token=%s", token)
+	URL := fmt.Sprintf("%s?token=%s", config.Envs.EmailVerifyUrl, token)
 
 	payload := struct {
 		User *types.User

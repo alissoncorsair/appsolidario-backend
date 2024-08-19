@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/alissoncorsair/appsolidario-backend/config"
+	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
 	"github.com/alissoncorsair/appsolidario-backend/service/user"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 )
@@ -30,8 +32,9 @@ func (s *APIServer) Run() error {
 		utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Hello, World!!"})
 	})
 
+	mailer := mailer.NewSendGridMailer(config.Envs.SendgridApiKey, config.Envs.EmailFrom)
 	userStore := user.NewStore(s.db)
-	userHandler := user.NewHandler(userStore)
+	userHandler := user.NewHandler(userStore, mailer)
 	userHandler.RegisterRoutes(apiRouter)
 
 	router.Handle("/api/", corsMiddleware(http.StripPrefix("/api", apiRouter)))
