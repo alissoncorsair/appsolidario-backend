@@ -10,6 +10,7 @@ import (
 
 	"github.com/alissoncorsair/appsolidario-backend/service/auth"
 	"github.com/alissoncorsair/appsolidario-backend/service/user"
+	"github.com/alissoncorsair/appsolidario-backend/storage"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 	"github.com/google/uuid"
@@ -18,12 +19,14 @@ import (
 type Handler struct {
 	postStore *Store
 	userStore *user.Store
+	storage   *storage.R2Storage
 }
 
-func NewHandler(postStore *Store, userStore *user.Store) *Handler {
+func NewHandler(postStore *Store, userStore *user.Store, storage *storage.R2Storage) *Handler {
 	return &Handler{
 		postStore: postStore,
 		userStore: userStore,
+		storage:   storage,
 	}
 }
 
@@ -64,27 +67,13 @@ func (h *Handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 			}
 			defer file.Close()
 
-			filename := uuid.New().String() + filepath.Ext(fileHeader.Filename)
-
-			uploadDir := "./uploads"
-			if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to create upload directory: %w", err))
-				return
-			}
-
-			dst, err := os.Create(filepath.Join(uploadDir, filename))
+			fileURL, err := h.storage.UploadFile(r.Context(), file, fileHeader.Filename)
 			if err != nil {
-				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to create file: %w", err))
-				return
-			}
-			defer dst.Close()
-
-			if _, err := io.Copy(dst, file); err != nil {
-				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to save file: %w", err))
+				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to upload file: %w", err))
 				return
 			}
 
-			post.Photos = append(post.Photos, filename)
+			post.Photos = append(post.Photos, fileURL)
 		}
 	}
 

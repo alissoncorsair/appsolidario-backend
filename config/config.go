@@ -36,6 +36,8 @@ func initConfig() *types.Config {
 		EmailVerifyUrl:                getEnv("EMAIL_VERIFY_URL", ""),
 		R2AccountID:                   getEnv("R2_ACCOUNT_ID", ""),
 		R2BucketName:                  getEnv("R2_BUCKET_NAME", ""),
+		R2AccessKeyID:                 getEnv("R2_ACCESS_KEY_ID", ""),
+		R2AccessKeySecret:             getEnv("R2_ACCESS_KEY_SECRET", ""),
 	}
 }
 

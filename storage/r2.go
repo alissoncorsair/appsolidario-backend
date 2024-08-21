@@ -8,6 +8,7 @@ import (
 	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
@@ -15,35 +16,37 @@ import (
 type R2Storage struct {
 	client     *s3.Client
 	bucketName string
+	accountID  string
 }
 
 func NewR2Storage(accountID, bucketName string) (*R2Storage, error) {
+	var accessKeyId = config.Envs.R2AccessKeyID
+	var accessKeySecret = config.Envs.R2AccessKeySecret
+
 	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyId, accessKeySecret, "")),
 		awsconfig.WithRegion("auto"),
-		awsconfig.WithEndpointResolver(aws.EndpointResolverFunc(
-			func(service, region string) (aws.Endpoint, error) {
-				return aws.Endpoint{
-					URL: fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID),
-				}, nil
-			},
-		)),
 	)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID))
+	})
 
 	return &R2Storage{
 		client:     client,
 		bucketName: bucketName,
+		accountID:  accountID,
 	}, nil
 }
 
-func (s *R2Storage) UploadFile(file io.Reader, filename string) (string, error) {
+func (s *R2Storage) UploadFile(ctx context.Context, file io.Reader, filename string) (string, error) {
 	uniqueFilename := uuid.New().String() + "-" + filename
 
-	_, err := s.client.PutObject(context.TODO(), &s3.PutObjectInput{
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucketName),
 		Key:    aws.String(uniqueFilename),
 		Body:   file,
@@ -52,5 +55,9 @@ func (s *R2Storage) UploadFile(file io.Reader, filename string) (string, error) 
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s/%s", config.Envs.R2AccountID, s.bucketName, uniqueFilename), nil
+	return s.generateFileURL(uniqueFilename), nil
+}
+
+func (s *R2Storage) generateFileURL(filename string) string {
+	return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s/%s", s.accountID, s.bucketName, filename)
 }

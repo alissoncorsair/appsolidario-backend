@@ -22,6 +22,8 @@ type Config struct {
 	EmailVerifyUrl                string
 	R2AccountID                   string
 	R2BucketName                  string
+	R2AccessKeyID                 string
+	R2AccessKeySecret             string
 }
 
 // UserRole defines the role of a user.

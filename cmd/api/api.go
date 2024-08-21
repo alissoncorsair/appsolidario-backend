@@ -49,7 +49,7 @@ func (s *APIServer) Run() error {
 	userHandler := user.NewHandler(userStore, mailer)
 	userHandler.RegisterRoutes(apiRouter)
 	postStore := post.NewStore(s.db)
-	postHandler := post.NewHandler(postStore, userStore)
+	postHandler := post.NewHandler(postStore, userStore, s.storage)
 	postHandler.RegisterRoutes(apiRouter)
 
 	router.Handle("/api/", corsMiddleware(http.StripPrefix("/api", apiRouter)))
