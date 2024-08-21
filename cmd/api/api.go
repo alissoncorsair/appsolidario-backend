@@ -44,7 +44,7 @@ func (s *APIServer) Run() error {
 		utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Hello, World!!"})
 	})
 
-	mailer := mailer.NewSendGridMailer(config.Envs.SendgridApiKey, config.Envs.EmailFrom)
+	mailer := mailer.NewSendGridMailer(config.Envs.SendgridApiKey, config.Envs.EmailFrom, config.Envs.DevMode)
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore, mailer)
 	userHandler.RegisterRoutes(apiRouter)

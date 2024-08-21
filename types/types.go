@@ -24,6 +24,7 @@ type Config struct {
 	R2BucketName                  string
 	R2AccessKeyID                 string
 	R2AccessKeySecret             string
+	DevMode                       bool
 }
 
 // UserRole defines the role of a user.

@@ -67,13 +67,13 @@ func (h *Handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 			}
 			defer file.Close()
 
-			fileURL, err := h.storage.UploadFile(r.Context(), file, fileHeader.Filename)
+			_, filename, err := h.storage.UploadFile(r.Context(), file, fileHeader.Filename)
 			if err != nil {
 				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to upload file: %w", err))
 				return
 			}
 
-			post.Photos = append(post.Photos, fileURL)
+			post.Photos = append(post.Photos, filename)
 		}
 	}
 
@@ -157,7 +157,26 @@ func (h *Handler) HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"filename": filename})
 }
 
+func (h *Handler) HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
+	filename := filepath.Base(r.URL.Path)
+	if filename == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid filename"))
+		return
+	}
+
+	file, err := h.storage.GetFile(r.Context(), filename)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get file: %w", err))
+		return
+	}
+	defer file.Close()
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	io.Copy(w, file)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /posts", auth.WithJWTAuth(h.HandleCreatePost, h.userStore))
 	router.HandleFunc("POST /comments", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
+	router.HandleFunc("GET /photos/{filename}", h.HandleGetPhoto)
 }

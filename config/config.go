@@ -38,6 +38,7 @@ func initConfig() *types.Config {
 		R2BucketName:                  getEnv("R2_BUCKET_NAME", ""),
 		R2AccessKeyID:                 getEnv("R2_ACCESS_KEY_ID", ""),
 		R2AccessKeySecret:             getEnv("R2_ACCESS_KEY_SECRET", ""),
+		DevMode:                       getEnvAsBool("DEV_MODE", false),
 	}
 }
 
@@ -56,6 +57,14 @@ func getEnvAsInt64(key string, fallback int64) int64 {
 			return fallback
 		}
 		return i
+	}
+
+	return fallback
+}
+
+func getEnvAsBool(key string, fallback bool) bool {
+	if value, ok := os.LookupEnv(key); ok {
+		return value == "true"
 	}
 
 	return fallback

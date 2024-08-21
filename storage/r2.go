@@ -43,7 +43,7 @@ func NewR2Storage(accountID, bucketName string) (*R2Storage, error) {
 	}, nil
 }
 
-func (s *R2Storage) UploadFile(ctx context.Context, file io.Reader, filename string) (string, error) {
+func (s *R2Storage) UploadFile(ctx context.Context, file io.Reader, filename string) (string, string, error) {
 	uniqueFilename := uuid.New().String() + "-" + filename
 
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
@@ -52,10 +52,22 @@ func (s *R2Storage) UploadFile(ctx context.Context, file io.Reader, filename str
 		Body:   file,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file: %w", err)
+		return "", "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	return s.generateFileURL(uniqueFilename), nil
+	return s.generateFileURL(uniqueFilename), uniqueFilename, nil
+}
+
+func (s *R2Storage) GetFile(ctx context.Context, filename string) (io.ReadCloser, error) {
+	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucketName),
+		Key:    aws.String(filename),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+
+	return result.Body, nil
 }
 
 func (s *R2Storage) generateFileURL(filename string) string {

@@ -38,11 +38,11 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 
 	if len(post.Photos) > 0 {
 		photoQuery := `
-            INSERT INTO post_photos (post_id, photo_url)
+            INSERT INTO post_photos (post_id, filename)
             VALUES ($1, $2)
         `
-		for _, photoURL := range post.Photos {
-			_, err = tx.Exec(photoQuery, post.ID, photoURL)
+		for _, filename := range post.Photos {
+			_, err = tx.Exec(photoQuery, post.ID, filename)
 			if err != nil {
 				return nil, fmt.Errorf("error adding photo: %w", err)
 			}
@@ -77,7 +77,7 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 	}
 
 	photoQuery := `
-        SELECT photo_url FROM post_photos
+        SELECT filename FROM post_photos
         WHERE post_id = $1
         ORDER BY created_at
     `
@@ -88,11 +88,11 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var photoURL string
-		if err := rows.Scan(&photoURL); err != nil {
-			return nil, fmt.Errorf("error scanning photo URL: %w", err)
+		var filename string
+		if err := rows.Scan(&filename); err != nil {
+			return nil, fmt.Errorf("error scanning filename: %w", err)
 		}
-		post.Photos = append(post.Photos, photoURL)
+		post.Photos = append(post.Photos, filename)
 	}
 
 	return &post, nil

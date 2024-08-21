@@ -14,18 +14,25 @@ import (
 var FromName = "Solidariza"
 
 type SendGridMailer struct {
-	From   string
-	Client *sendgrid.Client
+	From    string
+	Client  *sendgrid.Client
+	DevMode bool
 }
 
-func NewSendGridMailer(apiKey, fromEmail string) *SendGridMailer {
+func NewSendGridMailer(apiKey, fromEmail string, devMode bool) *SendGridMailer {
 	return &SendGridMailer{
-		From:   fromEmail,
-		Client: sendgrid.NewSendClient(apiKey),
+		From:    fromEmail,
+		Client:  sendgrid.NewSendClient(apiKey),
+		DevMode: devMode,
 	}
 }
 
 func (m *SendGridMailer) SendConfirmationEmail(user *types.User, token string) error {
+	if m.DevMode {
+		fmt.Printf("Development mode: Email not sent. User: %s, Token: %s\n", user.Email, token)
+		return nil
+	}
+
 	from := mail.NewEmail(FromName, m.From)
 	subject := "Confirmação de e-mail"
 	userName := fmt.Sprintf("%s %s", user.Name, user.Surname)
