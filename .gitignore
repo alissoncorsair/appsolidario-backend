@@ -1,7 +1,7 @@
 /bin/
 /db-data/
 /tmp
-
+/uploads
 # IDE specific files
 .idea/
 .vscode/

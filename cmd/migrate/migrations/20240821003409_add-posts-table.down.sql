@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS post_photos;
+DROP TABLE IF EXISTS posts;

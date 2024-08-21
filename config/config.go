@@ -34,6 +34,8 @@ func initConfig() *types.Config {
 		EmailFrom:                     getEnv("EMAIL_FROM", ""),
 		EmailFromName:                 getEnv("EMAIL_FROM_NAME", ""),
 		EmailVerifyUrl:                getEnv("EMAIL_VERIFY_URL", ""),
+		R2AccountID:                   getEnv("R2_ACCOUNT_ID", ""),
+		R2BucketName:                  getEnv("R2_BUCKET_NAME", ""),
 	}
 }
 

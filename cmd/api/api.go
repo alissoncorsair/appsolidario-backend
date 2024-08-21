@@ -7,19 +7,31 @@ import (
 
 	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
+	"github.com/alissoncorsair/appsolidario-backend/service/post"
 	"github.com/alissoncorsair/appsolidario-backend/service/user"
+	"github.com/alissoncorsair/appsolidario-backend/storage"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 )
 
 type APIServer struct {
-	addr string
-	db   *sql.DB
+	addr    string
+	db      *sql.DB
+	storage *storage.R2Storage
 }
 
 func NewAPIServer(addr string, db *sql.DB) *APIServer {
+	accountID := config.Envs.R2AccountID
+	bucketName := config.Envs.R2BucketName
+	storage, err := storage.NewR2Storage(accountID, bucketName)
+
+	if err != nil {
+		log.Fatalf("Failed to create R2 storage: %v", err)
+	}
+
 	return &APIServer{
-		addr: addr,
-		db:   db,
+		addr:    addr,
+		db:      db,
+		storage: storage,
 	}
 }
 
@@ -36,6 +48,9 @@ func (s *APIServer) Run() error {
 	userStore := user.NewStore(s.db)
 	userHandler := user.NewHandler(userStore, mailer)
 	userHandler.RegisterRoutes(apiRouter)
+	postStore := post.NewStore(s.db)
+	postHandler := post.NewHandler(postStore, userStore)
+	postHandler.RegisterRoutes(apiRouter)
 
 	router.Handle("/api/", corsMiddleware(http.StripPrefix("/api", apiRouter)))
 

@@ -18,6 +18,10 @@ docker-migrate-down:
 	@echo "Rolling back migrations in Docker..."
 	@docker compose run --rm app go run cmd/migrate/main.go down
 
+# Create a new migration
+migration:
+	@migrate create -ext sql -dir cmd/migrate/migrations $(filter-out $@,$(MAKECMDGOALS))
+
 # Show help
 help:
 	@echo "Available commands:"

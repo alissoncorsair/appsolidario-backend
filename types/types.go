@@ -20,6 +20,8 @@ type Config struct {
 	EmailFrom                     string
 	EmailFromName                 string
 	EmailVerifyUrl                string
+	R2AccountID                   string
+	R2BucketName                  string
 }
 
 // UserRole defines the role of a user.
@@ -113,4 +115,33 @@ type RegisterUserRequest struct {
 type LoginUserRequest struct {
 	CPF      string `json:"cpf" validate:"required,min=11,max=14"`
 	Password string `json:"password" validate:"required,min=6"`
+}
+
+type Post struct {
+	ID          int       `json:"id"`
+	UserID      int       `json:"user_id"`
+	Title       string    `json:"title" validate:"required,max=255"`
+	Description string    `json:"description" validate:"required"`
+	Photos      []string  `json:"photos,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CreatePostRequest struct {
+	Title       string `json:"title" validate:"required,max=255"`
+	Description string `json:"description" validate:"required"`
+}
+
+type Comment struct {
+	ID        int       `json:"id"`
+	PostID    int       `json:"post_id"`
+	UserID    int       `json:"user_id"`
+	Content   string    `json:"content" validate:"required"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CreateCommentRequest struct {
+	PostID  int    `json:"post_id" validate:"required"`
+	Content string `json:"content" validate:"required"`
 }
