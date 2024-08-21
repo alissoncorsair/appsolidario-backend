@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/alissoncorsair/appsolidario-backend/service/auth"
 	"github.com/alissoncorsair/appsolidario-backend/service/user"
@@ -84,6 +85,46 @@ func (h *Handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, createdPost)
+}
+
+func (h *Handler) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
+	id := filepath.Base(r.URL.Path)
+	if id == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
+	postID, err := strconv.Atoi(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not authenticated"))
+		return
+	}
+
+	post, err := h.postStore.GetPostByID(postID)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("post not found"))
+		return
+	}
+
+	if post.UserID != userID {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("you don't have permission to delete this post"))
+		return
+	}
+
+	err = h.postStore.DeletePost(postID, h.storage)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to delete post: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Post deleted successfully"})
 }
 
 func (h *Handler) HandleCreateComment(w http.ResponseWriter, r *http.Request) {
@@ -177,6 +218,7 @@ func (h *Handler) HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /posts", auth.WithJWTAuth(h.HandleCreatePost, h.userStore))
+	router.HandleFunc("DELETE /posts/{id}", auth.WithJWTAuth(h.HandleDeletePost, h.userStore))
 	router.HandleFunc("POST /comments", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
 	router.HandleFunc("GET /photos/{filename}", h.HandleGetPhoto)
 }

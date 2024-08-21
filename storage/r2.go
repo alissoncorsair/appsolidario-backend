@@ -70,6 +70,17 @@ func (s *R2Storage) GetFile(ctx context.Context, filename string) (io.ReadCloser
 	return result.Body, nil
 }
 
+func (s *R2Storage) DeleteFile(ctx context.Context, filename string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucketName),
+		Key:    aws.String(filename),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+	return nil
+}
+
 func (s *R2Storage) generateFileURL(filename string) string {
 	return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s/%s", s.accountID, s.bucketName, filename)
 }

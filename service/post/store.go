@@ -1,9 +1,11 @@
 package post
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
+	"github.com/alissoncorsair/appsolidario-backend/storage"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 )
 
@@ -141,4 +143,69 @@ func (s *Store) GetCommentsByPostID(postID int) ([]*types.Comment, error) {
 	}
 
 	return comments, nil
+}
+
+func (s *Store) DeletePost(postID int, storageClient *storage.R2Storage) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	var filenames []string
+	photoQuery := "SELECT filename FROM post_photos WHERE post_id = $1"
+	rows, err := tx.Query(photoQuery, postID)
+	if err != nil {
+		return fmt.Errorf("error fetching post photos: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var filename string
+		if err := rows.Scan(&filename); err != nil {
+			return fmt.Errorf("error scanning filename: %w", err)
+		}
+		filenames = append(filenames, filename)
+	}
+
+	// Delete files from R2/S3
+	for _, filename := range filenames {
+		if err := storageClient.DeleteFile(context.Background(), filename); err != nil {
+			return fmt.Errorf("error deleting file from storage: %w", err)
+		}
+	}
+
+	// Delete associated comments
+	_, err = tx.Exec("DELETE FROM comments WHERE post_id = $1", postID)
+	if err != nil {
+		return fmt.Errorf("error deleting comments: %w", err)
+	}
+
+	// Delete associated photos from database
+	_, err = tx.Exec("DELETE FROM post_photos WHERE post_id = $1", postID)
+	if err != nil {
+		return fmt.Errorf("error deleting post photos: %w", err)
+	}
+
+	// Delete the post
+	result, err := tx.Exec("DELETE FROM posts WHERE id = $1", postID)
+	if err != nil {
+		return fmt.Errorf("error deleting post: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("post not found")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("error committing transaction: %w", err)
+	}
+
+	return nil
 }
