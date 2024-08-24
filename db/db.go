@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"net/url"
 
 	"github.com/alissoncorsair/appsolidario-backend/types"
 	_ "github.com/lib/pq"
@@ -11,14 +11,29 @@ import (
 
 func NewPostgreSQLStorage(config types.Config) (*sql.DB, error) {
 	psqlInfo := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.PostgresUser, config.PostgresPassword, config.PostgresDB, config.SSLMode,
+		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		config.PostgresUser,
+		config.PostgresPassword,
+		config.Host,
+		config.Port,
+		config.PostgresDB,
+		config.SSLMode,
 	)
 
-	db, err := sql.Open("postgres", psqlInfo)
+	// Add SSL root cert if provided
+	if config.PGCert != "" {
+		psqlInfo += fmt.Sprintf(";sslrootcert=%s", url.QueryEscape(config.PGCert))
+	}
 
+	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("error opening database connection: %w", err)
+	}
+
+	// Test the connection
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("error pinging database: %w", err)
 	}
 
 	return db, nil

@@ -25,6 +25,7 @@ type Config struct {
 	R2AccessKeyID                 string
 	R2AccessKeySecret             string
 	DevMode                       bool
+	PGCert                        string
 }
 
 // UserRole defines the role of a user.
