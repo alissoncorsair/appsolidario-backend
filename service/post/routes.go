@@ -53,8 +53,15 @@ func (h *Handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := h.userStore.GetUserByID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get user: %w", err))
+		return
+	}
+
 	post := &types.Post{
 		UserID:      userID,
+		AuthorName:  user.Name,
 		Title:       payload.Title,
 		Description: payload.Description,
 	}
@@ -145,10 +152,17 @@ func (h *Handler) HandleCreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := h.userStore.GetUserByID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get user: %w", err))
+		return
+	}
+
 	comment := &types.Comment{
-		PostID:  payload.PostID,
-		UserID:  userID,
-		Content: payload.Content,
+		PostID:     payload.PostID,
+		UserID:     userID,
+		AuthorName: user.Name,
+		Content:    payload.Content,
 	}
 
 	createdComment, err := h.postStore.CreateComment(comment)
@@ -216,9 +230,54 @@ func (h *Handler) HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, file)
 }
 
+func (h *Handler) HandleGetPostByID(w http.ResponseWriter, r *http.Request) {
+	id := filepath.Base(r.URL.Path)
+	if id == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
+	postID, err := strconv.Atoi(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
+	post, err := h.postStore.GetPostByID(postID)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("post not found"))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, post)
+}
+
+func (h *Handler) HandleGetCommentsByPostID(w http.ResponseWriter, r *http.Request) {
+	id := filepath.Base(r.URL.Path)
+	if id == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
+	postID, err := strconv.Atoi(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
+	comments, err := h.postStore.GetCommentsByPostID(postID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get comments: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, comments)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /posts", auth.WithJWTAuth(h.HandleCreatePost, h.userStore))
+	router.HandleFunc("GET /posts/{id}", auth.WithJWTAuth(h.HandleGetPostByID, h.userStore))
+	router.HandleFunc("GET /posts/{id}/comments", auth.WithJWTAuth(h.HandleGetCommentsByPostID, h.userStore))
 	router.HandleFunc("DELETE /posts/{id}", auth.WithJWTAuth(h.HandleDeletePost, h.userStore))
 	router.HandleFunc("POST /comments", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
-	router.HandleFunc("GET /photos/{filename}", h.HandleGetPhoto)
 }

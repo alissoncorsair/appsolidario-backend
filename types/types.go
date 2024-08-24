@@ -127,6 +127,7 @@ type Post struct {
 	Title       string    `json:"title" validate:"required,max=255"`
 	Description string    `json:"description" validate:"required"`
 	Photos      []string  `json:"photos,omitempty"`
+	AuthorName  string    `json:"author_name"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -137,12 +138,13 @@ type CreatePostRequest struct {
 }
 
 type Comment struct {
-	ID        int       `json:"id"`
-	PostID    int       `json:"post_id"`
-	UserID    int       `json:"user_id"`
-	Content   string    `json:"content" validate:"required"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         int       `json:"id"`
+	PostID     int       `json:"post_id"`
+	UserID     int       `json:"user_id"`
+	Content    string    `json:"content" validate:"required"`
+	AuthorName string    `json:"author_name"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type CreateCommentRequest struct {
