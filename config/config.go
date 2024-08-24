@@ -39,6 +39,7 @@ func initConfig() *types.Config {
 		R2AccessKeyID:                 getEnv("R2_ACCESS_KEY_ID", ""),
 		R2AccessKeySecret:             getEnv("R2_ACCESS_KEY_SECRET", ""),
 		DevMode:                       getEnvAsBool("DEV_MODE", false),
+		PGCert:                        getEnv("POSTGRES_SSL_CERT", ""),
 	}
 }
 

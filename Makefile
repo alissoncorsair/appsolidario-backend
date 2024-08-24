@@ -8,6 +8,11 @@ docker-up: docker-build
 	@echo "Starting Docker containers..."
 	@docker compose up -d
 
+# Stop Docker containers
+docker-stop:
+	@echo "Stopping Docker containers..."
+	@docker compose stop
+
 # Run migrations (Docker)
 docker-migrate-up:
 	@echo "Running migrations in Docker..."
