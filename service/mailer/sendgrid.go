@@ -66,7 +66,7 @@ func (m *SendGridMailer) SendConfirmationEmail(user *types.User, token string) e
 }
 
 func BuildConfirmationEmail(user *types.User, token string) (string, error) {
-	templ, err := template.ParseFiles("service/mailer/mail-confirmation.templ")
+	templ, err := template.ParseFiles("service/mailer/templates/mail-confirmation.templ")
 	if err != nil {
 		return "", err
 	}

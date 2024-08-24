@@ -31,6 +31,9 @@ COPY --from=builder /app/main .
 # Copy the migrations folder
 COPY --from=builder /app/cmd/migrate/migrations ./migrations
 
+# Copy template files
+COPY --from=builder /app/service/mailer/templates ./service/mailer/templates
+
 # Install necessary runtime dependencies
 RUN apk --no-cache add ca-certificates
 
