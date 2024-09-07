@@ -32,7 +32,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
 	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
-	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleProfile, h.userStore))
+	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleGetProfile, h.userStore))
 	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.userStore))
 	router.HandleFunc("GET /verify-email", h.HandleVerify)
 }
@@ -196,7 +196,6 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusOK, response)
-
 }
 
 func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
@@ -256,7 +255,7 @@ type UserResponse struct {
 	ProfilePictureURL string `json:"profile_picture_url"`
 }
 
-func (h *Handler) HandleProfile(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	userId, found := auth.GetUserIDFromContext(r.Context())
 
 	if !found {
