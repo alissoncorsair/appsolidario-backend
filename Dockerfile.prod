@@ -19,9 +19,6 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
 
-# Build the migration tool
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o migrate ./cmd/migrate/main.go
-
 # Final stage
 FROM alpine:latest
 
@@ -44,5 +41,5 @@ RUN apk --no-cache add ca-certificates
 # Expose the application port
 EXPOSE 8080
 
-# Run the migration tool
-ENTRYPOINT ["./entrypoint.sh"]
+# Run the binary
+CMD ["./main"]
