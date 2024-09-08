@@ -45,6 +45,4 @@ RUN apk --no-cache add ca-certificates
 EXPOSE 8080
 
 # Run the migration tool
-ENTRYPOINT ["./migrate", "up"]
-# Run the binary
-CMD ["./main"]
+ENTRYPOINT ["./entrypoint.sh"]
