@@ -27,7 +27,6 @@ WORKDIR /root/
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/main .
-COPY --from=builder /app/migrate .
 
 # Copy the migrations folder
 COPY --from=builder /app/cmd/migrate/migrations ./migrations
