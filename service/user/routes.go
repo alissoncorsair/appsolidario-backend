@@ -134,7 +134,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, user)
+	utils.WriteJSON(w, http.StatusCreated, map[string]string{"message": "Usuário criado com sucesso, verifique seu email para ativar sua conta"})
 }
 
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
@@ -232,7 +232,7 @@ func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userStore.GetUserByID(userID)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err)
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("error getting user from id %d: %w", userID, err))
 		return
 	}
 

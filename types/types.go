@@ -124,10 +124,10 @@ type LoginUserRequest struct {
 type Post struct {
 	ID          int       `json:"id"`
 	UserID      int       `json:"user_id"`
+	AuthorName  string    `json:"author_name"`
 	Title       string    `json:"title" validate:"required,max=255"`
 	Description string    `json:"description" validate:"required"`
 	Photos      []string  `json:"photos,omitempty"`
-	AuthorName  string    `json:"author_name"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -141,13 +141,12 @@ type Comment struct {
 	ID         int       `json:"id"`
 	PostID     int       `json:"post_id"`
 	UserID     int       `json:"user_id"`
-	Content    string    `json:"content" validate:"required"`
 	AuthorName string    `json:"author_name"`
+	Content    string    `json:"content" validate:"required"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type CreateCommentRequest struct {
-	PostID  int    `json:"post_id" validate:"required"`
 	Content string `json:"content" validate:"required"`
 }

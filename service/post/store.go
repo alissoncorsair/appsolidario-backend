@@ -27,11 +27,11 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 	defer tx.Rollback()
 
 	query := `
-        INSERT INTO posts (user_id, title, description, author_name)
+        INSERT INTO posts (user_id, author_name, title, description)
         VALUES ($1, $2, $3, $4)
         RETURNING id, created_at, updated_at
     `
-	err = tx.QueryRow(query, post.UserID, post.Title, post.Description, post.AuthorName).
+	err = tx.QueryRow(query, post.UserID, post.AuthorName, post.Title, post.Description).
 		Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
 
 	if err != nil {
@@ -61,13 +61,13 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 
 func (s *Store) GetPostByID(id int) (*types.Post, error) {
 	query := `
-        SELECT p.id, p.user_id, p.title, p.description, p.author_name, p.created_at, p.updated_at
+        SELECT p.id, p.user_id, p.author_name, p.title, p.description, p.created_at, p.updated_at
         FROM posts p
         WHERE p.id = $1
     `
 	var post types.Post
 	err := s.db.QueryRow(query, id).Scan(
-		&post.ID, &post.UserID, &post.Title, &post.Description, &post.AuthorName,
+		&post.ID, &post.UserID, &post.AuthorName, &post.Title, &post.Description,
 		&post.CreatedAt, &post.UpdatedAt,
 	)
 
@@ -102,11 +102,11 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 
 func (s *Store) CreateComment(comment *types.Comment) (*types.Comment, error) {
 	query := `
-        INSERT INTO comments (post_id, user_id, content, author_name)
+        INSERT INTO comments (post_id, user_id, author_name, content)
         VALUES ($1, $2, $3, $4)
         RETURNING id, created_at, updated_at
     `
-	err := s.db.QueryRow(query, comment.PostID, comment.UserID, comment.Content, comment.AuthorName).
+	err := s.db.QueryRow(query, comment.PostID, comment.UserID, comment.AuthorName, comment.Content).
 		Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt)
 
 	if err != nil {
@@ -116,9 +116,49 @@ func (s *Store) CreateComment(comment *types.Comment) (*types.Comment, error) {
 	return comment, nil
 }
 
+func (s *Store) GetCommentByID(commentID int) (*types.Comment, error) {
+	query := `
+		SELECT id, post_id, user_id, author_name, content, created_at, updated_at
+		FROM comments
+		WHERE id = $1
+	`
+	var comment types.Comment
+	err := s.db.QueryRow(query, commentID).Scan(
+		&comment.ID, &comment.PostID, &comment.UserID, &comment.AuthorName, &comment.Content,
+		&comment.CreatedAt, &comment.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("comment not found")
+		}
+		return nil, fmt.Errorf("error getting comment: %w", err)
+	}
+
+	return &comment, nil
+}
+
+func (s *Store) DeleteComment(commentID int) error {
+	result, err := s.db.Exec("DELETE FROM comments WHERE id = $1", commentID)
+	if err != nil {
+		return fmt.Errorf("error deleting comment: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("comment not found")
+	}
+
+	return nil
+}
+
 func (s *Store) GetCommentsByPostID(postID int) ([]*types.Comment, error) {
 	query := `
-        SELECT id, post_id, user_id, content, author_name, created_at, updated_at
+        SELECT id, post_id, user_id, author_name, content, created_at, updated_at
         FROM comments
         WHERE post_id = $1
         ORDER BY created_at DESC
@@ -129,11 +169,11 @@ func (s *Store) GetCommentsByPostID(postID int) ([]*types.Comment, error) {
 	}
 	defer rows.Close()
 
-	var comments []*types.Comment
+	comments := []*types.Comment{}
 	for rows.Next() {
 		var comment types.Comment
 		err := rows.Scan(
-			&comment.ID, &comment.PostID, &comment.UserID, &comment.Content, &comment.AuthorName,
+			&comment.ID, &comment.PostID, &comment.UserID, &comment.AuthorName, &comment.Content,
 			&comment.CreatedAt, &comment.UpdatedAt,
 		)
 		if err != nil {

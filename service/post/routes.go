@@ -135,6 +135,20 @@ func (h *Handler) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleCreateComment(w http.ResponseWriter, r *http.Request) {
+	var id = r.PathValue("post_id")
+
+	if id == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
+	postID, err := strconv.Atoi(id)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
+		return
+	}
+
 	var payload types.CreateCommentRequest
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid request payload"))
@@ -159,7 +173,7 @@ func (h *Handler) HandleCreateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	comment := &types.Comment{
-		PostID:     payload.PostID,
+		PostID:     postID,
 		UserID:     userID,
 		AuthorName: user.Name,
 		Content:    payload.Content,
@@ -172,6 +186,50 @@ func (h *Handler) HandleCreateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, createdComment)
+}
+
+func (h *Handler) HandleDeleteComment(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if id == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid comment ID"))
+		return
+	}
+
+	commentID, err := strconv.Atoi(id)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid comment ID"))
+		return
+	}
+
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not authenticated"))
+		return
+	}
+
+	comment, err := h.postStore.GetCommentByID(commentID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("comment not found"))
+		return
+	}
+
+	if comment.UserID != userID {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("you don't have permission to delete this comment"))
+		return
+	}
+
+	err = h.postStore.DeleteComment(commentID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to delete comment: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Comment deleted successfully"})
 }
 
 func (h *Handler) HandleUploadPhoto(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +288,11 @@ func (h *Handler) HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, file)
 }
 
+type GetPostResponse struct {
+	Post     *types.Post      `json:"post"`
+	Comments []*types.Comment `json:"comments"`
+}
+
 func (h *Handler) HandleGetPostByID(w http.ResponseWriter, r *http.Request) {
 	id := filepath.Base(r.URL.Path)
 	if id == "" {
@@ -249,35 +312,19 @@ func (h *Handler) HandleGetPostByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, post)
-}
-
-func (h *Handler) HandleGetCommentsByPostID(w http.ResponseWriter, r *http.Request) {
-	id := filepath.Base(r.URL.Path)
-	if id == "" {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
-		return
-	}
-
-	postID, err := strconv.Atoi(id)
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid post ID"))
-		return
-	}
-
 	comments, err := h.postStore.GetCommentsByPostID(postID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get comments: %w", err))
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, comments)
+	utils.WriteJSON(w, http.StatusOK, GetPostResponse{Post: post, Comments: comments})
 }
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /posts", auth.WithJWTAuth(h.HandleCreatePost, h.userStore))
 	router.HandleFunc("GET /posts/{id}", auth.WithJWTAuth(h.HandleGetPostByID, h.userStore))
-	router.HandleFunc("GET /posts/{id}/comments", auth.WithJWTAuth(h.HandleGetCommentsByPostID, h.userStore))
 	router.HandleFunc("DELETE /posts/{id}", auth.WithJWTAuth(h.HandleDeletePost, h.userStore))
-	router.HandleFunc("POST /comments", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
+	router.HandleFunc("POST /comments/{post_id}", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
+	router.HandleFunc("DELETE /comments/{id}", auth.WithJWTAuth(h.HandleDeleteComment, h.userStore))
 }
