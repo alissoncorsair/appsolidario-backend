@@ -327,4 +327,5 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("DELETE /posts/{id}", auth.WithJWTAuth(h.HandleDeletePost, h.userStore))
 	router.HandleFunc("POST /comments/{post_id}", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
 	router.HandleFunc("DELETE /comments/{id}", auth.WithJWTAuth(h.HandleDeleteComment, h.userStore))
+	router.HandleFunc("GET /photos/{filename}", h.HandleGetPhoto)
 }
