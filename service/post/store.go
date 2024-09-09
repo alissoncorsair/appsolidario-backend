@@ -100,6 +100,61 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 	return &post, nil
 }
 
+func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
+	query := `
+	SELECT p.id, p.user_id, p.author_name, p.title, p.description, p.created_at, p.updated_at 
+	FROM posts p
+	WHERE p.user_id = $1
+	`
+
+	rows, err := s.db.Query(query, id)
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting posts: %w", err)
+	}
+
+	defer rows.Close()
+
+	posts := []*types.Post{}
+
+	for rows.Next() {
+		var post types.Post
+		err := rows.Scan(
+			&post.ID, &post.UserID, &post.AuthorName, &post.Title, &post.Description,
+			&post.CreatedAt, &post.UpdatedAt,
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("error scanning post: %w", err)
+		}
+
+		photoQuery := `
+			SELECT filename FROM post_photos
+			WHERE post_id = $1
+			ORDER BY created_at
+		`
+		photoRows, err := s.db.Query(photoQuery, post.ID)
+
+		if err != nil {
+			return nil, fmt.Errorf("error getting post photos: %w", err)
+		}
+
+		defer photoRows.Close()
+
+		for photoRows.Next() {
+			var filename string
+			if err := photoRows.Scan(&filename); err != nil {
+				return nil, fmt.Errorf("error scanning filename: %w", err)
+			}
+			post.Photos = append(post.Photos, filename)
+		}
+
+		posts = append(posts, &post)
+	}
+
+	return posts, nil
+}
+
 func (s *Store) CreateComment(comment *types.Comment) (*types.Comment, error) {
 	query := `
         INSERT INTO comments (post_id, user_id, author_name, content)

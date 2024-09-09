@@ -321,9 +321,26 @@ func (h *Handler) HandleGetPostByID(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, GetPostResponse{Post: post, Comments: comments})
 }
 
+func (h *Handler) HandleGetOwnPosts(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not authenticated"))
+		return
+	}
+
+	posts, err := h.postStore.GetPostsByUserID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get posts: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, posts)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /posts", auth.WithJWTAuth(h.HandleCreatePost, h.userStore))
 	router.HandleFunc("GET /posts/{id}", auth.WithJWTAuth(h.HandleGetPostByID, h.userStore))
+	router.HandleFunc("GET /me/posts", auth.WithJWTAuth(h.HandleGetOwnPosts, h.userStore))
 	router.HandleFunc("DELETE /posts/{id}", auth.WithJWTAuth(h.HandleDeletePost, h.userStore))
 	router.HandleFunc("POST /comments/{post_id}", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
 	router.HandleFunc("DELETE /comments/{id}", auth.WithJWTAuth(h.HandleDeleteComment, h.userStore))
