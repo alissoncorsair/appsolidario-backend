@@ -6,8 +6,11 @@ import (
 	"net/http"
 
 	"github.com/alissoncorsair/appsolidario-backend/config"
+	"github.com/alissoncorsair/appsolidario-backend/payment"
 	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
+	paymentService "github.com/alissoncorsair/appsolidario-backend/service/payment"
 	"github.com/alissoncorsair/appsolidario-backend/service/post"
+	"github.com/alissoncorsair/appsolidario-backend/service/transactions"
 	"github.com/alissoncorsair/appsolidario-backend/service/user"
 	"github.com/alissoncorsair/appsolidario-backend/storage"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
@@ -51,6 +54,13 @@ func (s *APIServer) Run() error {
 	postStore := post.NewStore(s.db)
 	postHandler := post.NewHandler(postStore, userStore, s.storage)
 	postHandler.RegisterRoutes(apiRouter)
+	transactionsStore := transactions.NewStore(s.db)
+	paymentStore := paymentService.NewStore(s.db, payment.MercadoPago{
+		AccessToken: config.Envs.MercadoPagoAccessToken,
+	}, transactionsStore)
+	paymentHandler := paymentService.NewHandler(paymentStore, userStore)
+
+	paymentHandler.RegisterRoutes(apiRouter)
 
 	router.Handle("/api/", corsMiddleware(http.StripPrefix("/api", apiRouter)))
 

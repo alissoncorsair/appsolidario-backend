@@ -80,3 +80,9 @@ func ParseDate(date string) (time.Time, error) {
 	return t, nil
 
 }
+
+func GetHttpClient() *http.Client {
+	return &http.Client{
+		Timeout: 10 * time.Second,
+	}
+}

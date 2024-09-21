@@ -26,6 +26,7 @@ type Config struct {
 	R2AccessKeySecret             string
 	DevMode                       bool
 	PGCert                        string
+	MercadoPagoAccessToken        string
 }
 
 // UserRole defines the role of a user.
@@ -51,6 +52,14 @@ const (
 	TokenTypeRefresh TokenType = "refresh"
 	TokenTypeReset   TokenType = "reset"
 	TokenTypeVerify  TokenType = "verify"
+)
+
+type TransactionStatus int
+
+const (
+	StatusPending  TransactionStatus = 0
+	StatusDone     TransactionStatus = 1
+	StatusCanceled TransactionStatus = 2
 )
 
 // User represents the user entity.
@@ -145,6 +154,18 @@ type Comment struct {
 	Content    string    `json:"content" validate:"required"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type Transaction struct {
+	ID          int               `json:"id"`
+	ExternalID  string            `json:"external_id"`
+	PayerID     int               `json:"payer_id"`
+	PayeeID     int               `json:"payee_id"`
+	Amount      float64           `json:"amount" validate:"required,gte=0"`
+	Status      TransactionStatus `json:"status" validate:"required,oneof=0 1 2"` // 0 for pending, 1 for done, 2 for canceled
+	Description string            `json:"description" validate:"required"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
 type CreateCommentRequest struct {
