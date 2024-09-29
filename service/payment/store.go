@@ -38,6 +38,21 @@ func (s *Store) CreatePayment(paymentInfo payment.PaymentInfo, user types.User) 
 	}
 
 	stringId := strconv.Itoa(info.ID)
+
+	transaction, err := s.transactionsStore.GetTransactionByExternalID(stringId)
+
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	if transaction != nil {
+		return &CreatePaymentResponse{
+			ExternalID:   stringId,
+			QRCodeBase64: info.PointOfInteraction.TransactionData.QRCodeBase64,
+			Amount:       int(info.TransactionAmount),
+		}, nil
+	}
+
 	_, err = s.transactionsStore.CreateTransaction(stringId, user.ID, paymentInfo.ReceiverID, paymentInfo.Amount, "Payment")
 
 	if err != nil {

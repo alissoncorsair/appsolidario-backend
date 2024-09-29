@@ -101,8 +101,6 @@ type UserStore interface {
 	GetUserByID(id int) (*User, error)
 	CreateUser(user *User) (*User, error)
 }
-
-// ProfilePicture represents the profile picture entity.
 type ProfilePicture struct {
 	ID        int       `json:"id"`
 	UserID    int       `json:"user_id"`
@@ -141,6 +139,12 @@ type Post struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type PostWithUserPictureAndComments struct {
+	Post
+	ProfilePicture string                   `json:"profile_picture"`
+	Comments       []CommentWithUserPicture `json:"comments"`
+}
+
 type CreatePostRequest struct {
 	Title       string `json:"title" validate:"required,max=255"`
 	Description string `json:"description" validate:"required"`
@@ -154,6 +158,11 @@ type Comment struct {
 	Content    string    `json:"content" validate:"required"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type CommentWithUserPicture struct {
+	Comment
+	ProfilePicture string `json:"profile_picture"`
 }
 
 type Transaction struct {
