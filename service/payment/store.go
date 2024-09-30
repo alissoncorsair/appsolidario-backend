@@ -70,6 +70,7 @@ func (s *Store) CreatePayment(paymentInfo payment.PaymentInfo, user types.User) 
 
 type PaymentStatusResponse struct {
 	Status types.TransactionStatus `json:"status"`
+	Amount float64                 `json:"amount"`
 	QRCode string                  `json:"qr_code"`
 }
 
@@ -98,6 +99,7 @@ func (s *Store) GetPaymentStatus(paymentID string) (*PaymentStatusResponse, erro
 
 	response := &PaymentStatusResponse{
 		Status: status,
+		Amount: paymentInfo.TransactionAmount,
 		QRCode: qrCode,
 	}
 
