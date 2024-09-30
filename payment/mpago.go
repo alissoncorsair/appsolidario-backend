@@ -105,8 +105,9 @@ const (
 )
 
 type MercadoPagoPaymentStatusResponse struct {
-	ID     int                       `json:"id"`
-	Status MercadoPagoStatusResponse `json:"status"`
+	ID                 int                       `json:"id"`
+	Status             MercadoPagoStatusResponse `json:"status"`
+	PointOfInteraction PointOfInteraction        `json:"point_of_interaction"`
 }
 
 func (mp *MercadoPago) GeneratePixPayment(paymentInfo PaymentInfo, user types.User) (*MercadoPagoPixResponse, error) {

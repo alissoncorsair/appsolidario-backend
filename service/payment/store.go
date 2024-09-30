@@ -70,6 +70,7 @@ func (s *Store) CreatePayment(paymentInfo payment.PaymentInfo, user types.User) 
 
 type PaymentStatusResponse struct {
 	Status types.TransactionStatus `json:"status"`
+	QRCode string                  `json:"qr_code"`
 }
 
 func (s *Store) GetPaymentStatus(paymentID string) (*PaymentStatusResponse, error) {
@@ -90,8 +91,14 @@ func (s *Store) GetPaymentStatus(paymentID string) (*PaymentStatusResponse, erro
 		}
 	}
 
+	qrCode := ""
+	if status != types.StatusDone {
+		qrCode = paymentInfo.PointOfInteraction.TransactionData.QRCodeBase64
+	}
+
 	response := &PaymentStatusResponse{
 		Status: status,
+		QRCode: qrCode,
 	}
 
 	return response, nil
