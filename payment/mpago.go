@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/alissoncorsair/appsolidario-backend/types"
@@ -160,13 +161,17 @@ func (mp *MercadoPago) GeneratePixPayment(paymentInfo PaymentInfo, user types.Us
 
 	var mpResp MercadoPagoPixResponse
 
-	err = json.NewDecoder(resp.Body).Decode(&mpResp)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
-	fmt.Println(mpResp.PointOfInteraction.TransactionData.QRCode)
+	err = json.NewDecoder(bytes.NewReader(body)).Decode(&mpResp)
+
+	if err != nil {
+		return nil, fmt.Errorf("error decoding JSON response: %w, body: %s", err, string(body))
+	}
 
 	return &mpResp, nil
 }
