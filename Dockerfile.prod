@@ -45,4 +45,4 @@ RUN apk --no-cache add ca-certificates
 EXPOSE 8080
 
 # Run the binary
-CMD ["./migrate up", "&&", "./main"]
+CMD ["./migrate up"]
