@@ -10,6 +10,8 @@ import (
 	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/service/auth"
 	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
+	"github.com/alissoncorsair/appsolidario-backend/service/profile_picture"
+	"github.com/alissoncorsair/appsolidario-backend/storage"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 	"github.com/go-playground/validator/v10"
@@ -17,14 +19,18 @@ import (
 )
 
 type Handler struct {
-	userStore *Store
-	mailer    mailer.Mailer
+	userStore    *Store
+	pictureStore *profile_picture.Store
+	storage      *storage.R2Storage
+	mailer       mailer.Mailer
 }
 
-func NewHandler(userStore *Store, mailer mailer.Mailer) *Handler {
+func NewHandler(userStore *Store, pictureStore *profile_picture.Store, storage *storage.R2Storage, mailer mailer.Mailer) *Handler {
 	return &Handler{
-		userStore: userStore,
-		mailer:    mailer,
+		userStore:    userStore,
+		pictureStore: pictureStore,
+		storage:      storage,
+		mailer:       mailer,
 	}
 }
 
@@ -32,6 +38,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
 	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
+	router.HandleFunc("POST /profile-picture", auth.WithJWTAuth(h.HandleAddProfilePicture, h.userStore))
 	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleGetProfile, h.userStore))
 	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.userStore))
 	router.HandleFunc("GET /verify-email", h.HandleVerify)
@@ -248,6 +255,77 @@ func (h *Handler) HandleVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Email verified successfully"})
+}
+
+func (h *Handler) HandleAddProfilePicture(w http.ResponseWriter, r *http.Request) {
+	userId, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
+	}
+
+	err := r.ParseMultipartForm(10 << 20) // 10 MB
+
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("failed to parse form: %w", err))
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("profile_picture")
+
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("failed to get file: %w", err))
+		return
+	}
+
+	defer file.Close()
+
+	_, filename, err := h.storage.UploadFile(r.Context(), file, fileHeader.Filename)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to upload file: %w", err))
+		return
+	}
+
+	profilePicture, err := h.userStore.GetUserProfilePicture(userId)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get profile picture: %w", err))
+		return
+	}
+
+	if profilePicture != nil {
+		err = h.storage.DeleteFile(r.Context(), profilePicture.Path)
+
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to delete old profile picture: %w", err))
+			return
+		}
+		newProfilePicture := &types.ProfilePicture{
+			ID:     profilePicture.ID,
+			UserID: userId,
+			Path:   filename,
+		}
+
+		h.pictureStore.UpdateProfilePicture(newProfilePicture)
+		utils.WriteJSON(w, http.StatusOK, profilePicture)
+		return
+	}
+
+	profilePicture = &types.ProfilePicture{
+		UserID: userId,
+		Path:   filename,
+	}
+
+	profilePicture, err = h.pictureStore.CreateProfilePicture(profilePicture)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to create profile picture: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusCreated, profilePicture)
 }
 
 type UserResponse struct {

@@ -101,7 +101,7 @@ func (s *Store) GetUserProfilePicture(userID int) (*types.ProfilePicture, error)
 
 	pp, err := profile_picture.ScanRowIntoProfilePicture(row)
 
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
 

@@ -129,20 +129,16 @@ type LoginUserRequest struct {
 }
 
 type Post struct {
-	ID          int       `json:"id"`
-	UserID      int       `json:"user_id"`
-	AuthorName  string    `json:"author_name"`
-	Title       string    `json:"title" validate:"required,max=255"`
-	Description string    `json:"description" validate:"required"`
-	Photos      []string  `json:"photos,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
-
-type PostWithUserPictureAndComments struct {
-	Post
-	ProfilePicture string                   `json:"profile_picture"`
-	Comments       []CommentWithUserPicture `json:"comments"`
+	ID          int        `json:"id"`
+	UserID      int        `json:"user_id"`
+	AuthorName  string     `json:"author_name"`
+	UserPicture string     `json:"user_picture"`
+	Comments    []*Comment `json:"comments"`
+	Title       string     `json:"title" validate:"required,max=255"`
+	Description string     `json:"description" validate:"required"`
+	Photos      []string   `json:"photos"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 type CreatePostRequest struct {
@@ -151,13 +147,14 @@ type CreatePostRequest struct {
 }
 
 type Comment struct {
-	ID         int       `json:"id"`
-	PostID     int       `json:"post_id"`
-	UserID     int       `json:"user_id"`
-	AuthorName string    `json:"author_name"`
-	Content    string    `json:"content" validate:"required"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID          int       `json:"id"`
+	PostID      int       `json:"post_id"`
+	UserID      int       `json:"user_id"`
+	UserPicture string    `json:"user_picture"`
+	AuthorName  string    `json:"author_name"`
+	Content     string    `json:"content" validate:"required"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type CommentWithUserPicture struct {

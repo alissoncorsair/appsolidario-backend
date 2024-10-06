@@ -10,6 +10,7 @@ import (
 	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
 	paymentService "github.com/alissoncorsair/appsolidario-backend/service/payment"
 	"github.com/alissoncorsair/appsolidario-backend/service/post"
+	"github.com/alissoncorsair/appsolidario-backend/service/profile_picture"
 	"github.com/alissoncorsair/appsolidario-backend/service/transactions"
 	"github.com/alissoncorsair/appsolidario-backend/service/user"
 	"github.com/alissoncorsair/appsolidario-backend/storage"
@@ -49,7 +50,8 @@ func (s *APIServer) Run() error {
 
 	mailer := mailer.NewSendGridMailer(config.Envs.SendgridApiKey, config.Envs.EmailFrom, config.Envs.DevMode)
 	userStore := user.NewStore(s.db)
-	userHandler := user.NewHandler(userStore, mailer)
+	profilePictureStore := profile_picture.NewStore(s.db)
+	userHandler := user.NewHandler(userStore, profilePictureStore, s.storage, mailer)
 	userHandler.RegisterRoutes(apiRouter)
 	postStore := post.NewStore(s.db)
 	postHandler := post.NewHandler(postStore, userStore, s.storage)

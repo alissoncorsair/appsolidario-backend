@@ -86,9 +86,21 @@ func (h *Handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	createdPost, err := h.postStore.CreatePost(post)
+
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	userPicture, err := h.userStore.GetUserProfilePicture(userID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get user profile picture: %w", err))
+		return
+	}
+
+	if userPicture != nil {
+		createdPost.UserPicture = userPicture.Path
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, createdPost)
@@ -288,11 +300,6 @@ func (h *Handler) HandleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, file)
 }
 
-type GetPostResponse struct {
-	Post     *types.Post      `json:"post"`
-	Comments []*types.Comment `json:"comments"`
-}
-
 func (h *Handler) HandleGetPostByID(w http.ResponseWriter, r *http.Request) {
 	id := filepath.Base(r.URL.Path)
 	if id == "" {
@@ -312,13 +319,7 @@ func (h *Handler) HandleGetPostByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comments, err := h.postStore.GetCommentsByPostID(postID)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get comments: %w", err))
-		return
-	}
-
-	utils.WriteJSON(w, http.StatusOK, GetPostResponse{Post: post, Comments: comments})
+	utils.WriteJSON(w, http.StatusOK, post)
 }
 
 func (h *Handler) HandleGetOwnPosts(w http.ResponseWriter, r *http.Request) {

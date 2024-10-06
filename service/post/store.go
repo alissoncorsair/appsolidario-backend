@@ -56,6 +56,12 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 		return nil, fmt.Errorf("error committing transaction: %w", err)
 	}
 
+	post.Comments = []*types.Comment{}
+
+	if len(post.Photos) == 0 {
+		post.Photos = []string{}
+	}
+
 	return post, nil
 }
 
@@ -96,6 +102,14 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 		}
 		post.Photos = append(post.Photos, filename)
 	}
+
+	comments, err := s.GetCommentsByPostID(id)
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting comments: %w", err)
+	}
+
+	post.Comments = comments
 
 	return &post, nil
 }
