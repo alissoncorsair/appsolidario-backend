@@ -34,16 +34,6 @@ func NewHandler(userStore *Store, pictureStore *profile_picture.Store, storage *
 	}
 }
 
-func (h *Handler) RegisterRoutes(router *http.ServeMux) {
-	router.HandleFunc("POST /login", h.HandleLogin)
-	router.HandleFunc("POST /register", h.HandleRegister)
-	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
-	router.HandleFunc("POST /profile-picture", auth.WithJWTAuth(h.HandleAddProfilePicture, h.userStore))
-	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleGetProfile, h.userStore))
-	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.userStore))
-	router.HandleFunc("GET /verify-email", h.HandleVerify)
-}
-
 func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	var payload types.RegisterUserRequest
 
@@ -328,23 +318,16 @@ func (h *Handler) HandleAddProfilePicture(w http.ResponseWriter, r *http.Request
 	utils.WriteJSON(w, http.StatusCreated, profilePicture)
 }
 
-type UserResponse struct {
-	types.UserWithoutPassword
-	ProfilePictureURL string `json:"profile_picture_url"`
-}
-
-func (h *Handler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
-	userId, found := auth.GetUserIDFromContext(r.Context())
-
-	if !found {
-		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
-		return
-	}
-
-	user, err := h.userStore.GetUserByID(userId)
+func (h *Handler) HandleGetProfile(id int, w http.ResponseWriter, r *http.Request) {
+	user, err := h.userStore.GetUserByID(id)
 
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if user == nil {
+		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("user not found"))
 		return
 	}
 
@@ -367,6 +350,7 @@ func (h *Handler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 		Surname:     user.Surname,
 		Email:       user.Email,
 		PostalCode:  user.PostalCode,
+		UserPicture: profilePictureURL,
 		State:       user.State,
 		City:        user.City,
 		Status:      user.Status,
@@ -379,12 +363,37 @@ func (h *Handler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:   user.UpdatedAt,
 	}
 
-	response := UserResponse{
-		userWithoutPassword,
-		profilePictureURL,
+	utils.WriteJSON(w, http.StatusOK, userWithoutPassword)
+}
+
+func (h *Handler) HandleGetOwnProfile(w http.ResponseWriter, r *http.Request) {
+	userId, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, response)
+	h.HandleGetProfile(userId, w, r)
+}
+
+func (h *Handler) HandleGetGivenProfile(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+
+	if idStr == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID"))
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID"))
+		return
+	}
+
+	h.HandleGetProfile(id, w, r)
+
 }
 
 func (h *Handler) HandleTest(w http.ResponseWriter, r *http.Request) {
@@ -400,4 +409,15 @@ func (h *Handler) HandleTest(w http.ResponseWriter, r *http.Request) {
 	}{
 		Message: fmt.Sprintf("ta funfando pae, userId: %d", userId),
 	})
+}
+
+func (h *Handler) RegisterRoutes(router *http.ServeMux) {
+	router.HandleFunc("POST /login", h.HandleLogin)
+	router.HandleFunc("POST /register", h.HandleRegister)
+	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
+	router.HandleFunc("POST /profile-picture", auth.WithJWTAuth(h.HandleAddProfilePicture, h.userStore))
+	router.HandleFunc("GET /profile/{id}", auth.WithJWTAuth(h.HandleGetGivenProfile, h.userStore))
+	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleGetOwnProfile, h.userStore))
+	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.userStore))
+	router.HandleFunc("GET /verify-email", h.HandleVerify)
 }

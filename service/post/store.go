@@ -27,11 +27,11 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 	defer tx.Rollback()
 
 	query := `
-        INSERT INTO posts (user_id, author_name, title, description)
+        INSERT INTO posts (user_id, author_name, description)
         VALUES ($1, $2, $3, $4)
         RETURNING id, created_at, updated_at
     `
-	err = tx.QueryRow(query, post.UserID, post.AuthorName, post.Title, post.Description).
+	err = tx.QueryRow(query, post.UserID, post.AuthorName, post.Description).
 		Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
 
 	if err != nil {
@@ -67,13 +67,13 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 
 func (s *Store) GetPostByID(id int) (*types.Post, error) {
 	query := `
-        SELECT p.id, p.user_id, p.author_name, p.title, p.description, p.created_at, p.updated_at
+        SELECT p.id, p.user_id, p.author_name, p.description, p.created_at, p.updated_at
         FROM posts p
         WHERE p.id = $1
     `
 	var post types.Post
 	err := s.db.QueryRow(query, id).Scan(
-		&post.ID, &post.UserID, &post.AuthorName, &post.Title, &post.Description,
+		&post.ID, &post.UserID, &post.AuthorName, &post.Description,
 		&post.CreatedAt, &post.UpdatedAt,
 	)
 
@@ -116,9 +116,10 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 
 func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
 	query := `
-	SELECT p.id, p.user_id, p.author_name, p.title, p.description, p.created_at, p.updated_at 
+	SELECT p.id, p.user_id, p.author_name, p.description, p.created_at, p.updated_at 
 	FROM posts p
 	WHERE p.user_id = $1
+	ORDER BY p.created_at DESC
 	`
 
 	rows, err := s.db.Query(query, id)
@@ -134,7 +135,7 @@ func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
 	for rows.Next() {
 		var post types.Post
 		err := rows.Scan(
-			&post.ID, &post.UserID, &post.AuthorName, &post.Title, &post.Description,
+			&post.ID, &post.UserID, &post.AuthorName, &post.Description,
 			&post.CreatedAt, &post.UpdatedAt,
 		)
 

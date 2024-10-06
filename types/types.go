@@ -64,12 +64,13 @@ const (
 
 // User represents the user entity.
 type UserWithoutPassword struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name" validate:"required,min=3,max=100"`
-	Surname    string `json:"surname" validate:"required,min=3,max=100"`
-	Email      string `json:"email" validate:"required,email"`
-	PostalCode string `json:"postal_code" validate:"required,min=8,max=9"`
-	City       string `json:"city" validate:"required,max=100"`
+	ID          int    `json:"id"`
+	Name        string `json:"name" validate:"required,min=3,max=100"`
+	Surname     string `json:"surname" validate:"required,min=3,max=100"`
+	Email       string `json:"email" validate:"required,email"`
+	PostalCode  string `json:"postal_code" validate:"required,min=8,max=9"`
+	City        string `json:"city" validate:"required,max=100"`
+	UserPicture string `json:"user_picture"`
 	// Street           string     `json:"street" validate:"required,max=255"`
 	State       string     `json:"state" validate:"required,max=100"`
 	Status      UserStatus `json:"status" validate:"required,oneof=0 1"` // 0 for inactive, 1 for active
@@ -134,7 +135,6 @@ type Post struct {
 	AuthorName  string     `json:"author_name"`
 	UserPicture string     `json:"user_picture"`
 	Comments    []*Comment `json:"comments"`
-	Title       string     `json:"title" validate:"required,max=255"`
 	Description string     `json:"description" validate:"required"`
 	Photos      []string   `json:"photos"`
 	CreatedAt   time.Time  `json:"created_at"`

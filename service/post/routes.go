@@ -39,7 +39,6 @@ func (h *Handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload types.CreatePostRequest
-	payload.Title = r.FormValue("title")
 	payload.Description = r.FormValue("description")
 
 	if err := utils.Validate.Struct(payload); err != nil {
@@ -62,7 +61,6 @@ func (h *Handler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	post := &types.Post{
 		UserID:      userID,
 		AuthorName:  user.Name,
-		Title:       payload.Title,
 		Description: payload.Description,
 	}
 
@@ -317,6 +315,31 @@ func (h *Handler) HandleGetPostByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("post not found"))
 		return
+	}
+
+	post.UserPicture = ""
+	userPicture, err := h.userStore.GetUserProfilePicture(post.UserID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get user profile picture: %w", err))
+		return
+	}
+
+	if userPicture != nil {
+		post.UserPicture = userPicture.Path
+	}
+
+	for _, comment := range post.Comments {
+		commentProfilePicture, err := h.userStore.GetUserProfilePicture(comment.UserID)
+
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get user profile picture: %w", err))
+			return
+		}
+
+		if commentProfilePicture != nil {
+			comment.UserPicture = commentProfilePicture.Path
+		}
 	}
 
 	utils.WriteJSON(w, http.StatusOK, post)
