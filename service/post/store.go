@@ -28,7 +28,7 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 
 	query := `
         INSERT INTO posts (user_id, author_name, description)
-        VALUES ($1, $2, $3, $4)
+        VALUES ($1, $2, $3)
         RETURNING id, created_at, updated_at
     `
 	err = tx.QueryRow(query, post.UserID, post.AuthorName, post.Description).
