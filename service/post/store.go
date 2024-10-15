@@ -57,7 +57,7 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 	}
 
 	post.Comments = []*types.Comment{}
-
+	
 	if len(post.Photos) == 0 {
 		post.Photos = []string{}
 	}
@@ -162,6 +162,22 @@ func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
 				return nil, fmt.Errorf("error scanning filename: %w", err)
 			}
 			post.Photos = append(post.Photos, filename)
+		}
+
+		if len(post.Photos) == 0 {
+			post.Photos = []string{}
+		}
+
+		comments, err := s.GetCommentsByPostID(post.ID)
+
+		if err != nil {
+			return nil, fmt.Errorf("error getting comments: %w", err)
+		}
+
+		post.Comments = comments
+
+		if len(post.Comments) == 0 {
+			post.Comments = []*types.Comment{}
 		}
 
 		posts = append(posts, &post)
