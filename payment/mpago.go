@@ -124,8 +124,8 @@ type MercadoPagoWebhookEvent struct {
 	Data   struct {
 		ID string `json:"id"`
 	} `json:"data"`
-	ID   int    `json:"id"`
-	Type string `json:"type"`
+	ID   interface{} `json:"id"` // api returns string or int xD
+	Type string      `json:"type"`
 }
 
 const (

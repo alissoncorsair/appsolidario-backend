@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/payment"
 	"github.com/alissoncorsair/appsolidario-backend/service/auth"
 	"github.com/alissoncorsair/appsolidario-backend/service/user"
@@ -89,12 +90,12 @@ func (h *Handler) HandleGetPaymentStatus(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) HandleMercadoPagoWebhook(w http.ResponseWriter, r *http.Request) {
-	/* 	ok := utils.WebhookHeaderValidator(r, config.Envs.MercadoPagoWebhookSecret)
+	ok := utils.WebhookHeaderValidator(r, config.Envs.MercadoPagoWebhookSecret)
 
-	   	if !ok {
-	   		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid webhook secret"))
-	   		return
-	   	} */
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid webhook secret"))
+		return
+	}
 
 	var webhookEvent payment.MercadoPagoWebhookEvent
 
