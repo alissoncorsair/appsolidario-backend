@@ -101,8 +101,15 @@ type MercadoPagoPixResponse struct {
 type MercadoPagoStatusResponse string
 
 const (
-	MercadoPagoStatusPending  MercadoPagoStatusResponse = "pending"
-	MercadoPagoStatusApproved MercadoPagoStatusResponse = "approved"
+	MercadoPagoStatusPending     MercadoPagoStatusResponse = "pending"
+	MercadoPagoStatusApproved    MercadoPagoStatusResponse = "approved"
+	MercadoPagoStatusAuthorized  MercadoPagoStatusResponse = "authorized"
+	MercadoPagoStatusInProcess   MercadoPagoStatusResponse = "in_process"
+	MercadoPagoStatusInMediation MercadoPagoStatusResponse = "in_mediation"
+	MercadoPagoStatusRejected    MercadoPagoStatusResponse = "rejected"
+	MercadoPagoStatusCancelled   MercadoPagoStatusResponse = "cancelled"
+	MercadoPagoStatusRefunded    MercadoPagoStatusResponse = "refunded"
+	MercadoPagoStatusChargedBack MercadoPagoStatusResponse = "charged_back"
 )
 
 type MercadoPagoPaymentStatusResponse struct {
@@ -110,6 +117,31 @@ type MercadoPagoPaymentStatusResponse struct {
 	Status             MercadoPagoStatusResponse `json:"status"`
 	PointOfInteraction PointOfInteraction        `json:"point_of_interaction"`
 	TransactionAmount  float64                   `json:"transaction_amount"`
+}
+
+type MercadoPagoWebhookEvent struct {
+	Action string `json:"action"`
+	Data   struct {
+		ID string `json:"id"`
+	} `json:"data"`
+	ID   int    `json:"id"`
+	Type string `json:"type"`
+}
+
+const (
+	MercadoPagoWebhookActionPaymentCreated string = "payment.created"
+	MercadoPagoWebhookActionPaymentUpdated string = "payment.updated"
+	MercadoPagoWebhookActionPaymentDeleted string = "payment.deleted"
+)
+
+type MercadoPagoAPIError struct {
+	Message string `json:"message"`
+	Error   string `json:"error"`
+	Status  int    `json:"status"`
+	Cause   []struct {
+		Code        int    `json:"code"`
+		Description string `json:"description"`
+	} `json:"cause"`
 }
 
 func (mp *MercadoPago) GeneratePixPayment(paymentInfo PaymentInfo, user types.User) (*MercadoPagoPixResponse, error) {
@@ -159,6 +191,17 @@ func (mp *MercadoPago) GeneratePixPayment(paymentInfo PaymentInfo, user types.Us
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		var mpErr MercadoPagoAPIError
+		err = json.NewDecoder(resp.Body).Decode(&mpErr)
+
+		if err != nil {
+			return nil, fmt.Errorf("error decoding error response: %w", err)
+		}
+
+		return nil, fmt.Errorf("error from MercadoPago API: %s", mpErr.Message)
+	}
+
 	var mpResp MercadoPagoPixResponse
 
 	body, err := io.ReadAll(resp.Body)
@@ -195,6 +238,17 @@ func (mp *MercadoPago) GetPaymentStatus(paymentID string) (*MercadoPagoPaymentSt
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var mpErr MercadoPagoAPIError
+		err = json.NewDecoder(resp.Body).Decode(&mpErr)
+
+		if err != nil {
+			return nil, fmt.Errorf("error decoding error response: %w", err)
+		}
+
+		return nil, fmt.Errorf("error from MercadoPago API: %s", mpErr.Message)
+	}
 
 	var mpResp MercadoPagoPaymentStatusResponse
 

@@ -176,3 +176,21 @@ type Transaction struct {
 type CreateCommentRequest struct {
 	Content string `json:"content" validate:"required"`
 }
+
+type Type string
+
+const (
+	TypePayment Type = "payment"
+	TypePost    Type = "post"
+)
+
+type Notification struct {
+	ID         int       `json:"id"`
+	UserID     int       `json:"user_id"`
+	FromUserID int       `json:"from_user_id"`
+	Type       Type      `json:"type"`
+	ResourceID int       `json:"resource_id"`
+	IsRead     bool      `json:"is_read"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}

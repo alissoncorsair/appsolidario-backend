@@ -44,7 +44,7 @@ func (s *Store) CreateTransaction(externalId string, payerID, payeeID int, amoun
 	return ScanRowIntoTransaction(row)
 }
 
-func (s *Store) UpdateTransactionStatus(externalId string, status types.TransactionStatus) (*types.Transaction, error) {
+func (s *Store) UpdateTransactionStatusAndAmount(externalId string, status types.TransactionStatus, amount float64) (*types.Transaction, error) {
 	query := `UPDATE transactions SET status = $1 WHERE external_id = $2 RETURNING id, external_id, payer_id, payee_id, amount, status, description, created_at, updated_at`
 	row := s.db.QueryRow(query, status, externalId)
 

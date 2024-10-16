@@ -8,6 +8,7 @@ import (
 	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/payment"
 	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
+	"github.com/alissoncorsair/appsolidario-backend/service/notification"
 	paymentService "github.com/alissoncorsair/appsolidario-backend/service/payment"
 	"github.com/alissoncorsair/appsolidario-backend/service/post"
 	"github.com/alissoncorsair/appsolidario-backend/service/profile_picture"
@@ -57,9 +58,10 @@ func (s *APIServer) Run() error {
 	postHandler := post.NewHandler(postStore, userStore, s.storage)
 	postHandler.RegisterRoutes(apiRouter)
 	transactionsStore := transactions.NewStore(s.db)
+	notificationStore := notification.NewStore(s.db)
 	paymentStore := paymentService.NewStore(s.db, payment.MercadoPago{
 		AccessToken: config.Envs.MercadoPagoAccessToken,
-	}, transactionsStore)
+	}, transactionsStore, notificationStore)
 	paymentHandler := paymentService.NewHandler(paymentStore, userStore)
 
 	paymentHandler.RegisterRoutes(apiRouter)

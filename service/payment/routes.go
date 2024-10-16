@@ -88,8 +88,30 @@ func (h *Handler) HandleGetPaymentStatus(w http.ResponseWriter, r *http.Request)
 	utils.WriteJSON(w, http.StatusOK, response)
 }
 
+func (h *Handler) HandleMercadoPagoWebhook(w http.ResponseWriter, r *http.Request) {
+	var webhookEvent payment.MercadoPagoWebhookEvent
+	err := json.NewDecoder(r.Body).Decode(&webhookEvent)
+
+	fmt.Println("webhookEvent", webhookEvent)
+
+	if err != nil {
+		fmt.Println("err decoding", err)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("failed to decode request: %w", err))
+		return
+	}
+
+	err = h.paymentStore.ProcessWebhookEvent(webhookEvent)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to handle webhook: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, nil)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /pay", auth.WithJWTAuth(h.HandleGeneratePix, h.userStore))
 	router.HandleFunc("GET /pay/status/{payment_id}", auth.WithJWTAuth(h.HandleGetPaymentStatus, h.userStore))
-
+	router.HandleFunc("POST /webhook/mpago", h.HandleMercadoPagoWebhook)
 }

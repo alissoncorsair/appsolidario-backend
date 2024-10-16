@@ -16,6 +16,7 @@ import (
 	"github.com/alissoncorsair/appsolidario-backend/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/paemuri/brdoc"
 )
 
 type Handler struct {
@@ -58,6 +59,13 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	var cpf string
 	re := regexp.MustCompile("[^0-9]")
 	cpf = re.ReplaceAllString(payload.CPF, "")
+
+	valid := brdoc.IsCPF(cpf)
+
+	if !valid {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("cpf inválido"))
+		return
+	}
 
 	_, err = h.userStore.GetUserByCPF(cpf)
 
