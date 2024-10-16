@@ -41,6 +41,7 @@ func initConfig() *types.Config {
 		DevMode:                       getEnvAsBool("DEV_MODE", false),
 		PGCert:                        getEnv("POSTGRES_SSL_CERT", ""),
 		MercadoPagoAccessToken:        getEnv("MERCADO_PAGO_ACCESS_TOKEN", ""),
+		MercadoPagoWebhookSecret:      getEnv("MERCADO_PAGO_WEBHOOK_SECRET", ""),
 	}
 }
 

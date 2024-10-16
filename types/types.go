@@ -27,6 +27,7 @@ type Config struct {
 	DevMode                       bool
 	PGCert                        string
 	MercadoPagoAccessToken        string
+	MercadoPagoWebhookSecret      string
 }
 
 // UserRole defines the role of a user.
