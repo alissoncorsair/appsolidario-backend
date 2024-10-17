@@ -312,7 +312,7 @@ func (h *Handler) HandleAddProfilePicture(w http.ResponseWriter, r *http.Request
 		}
 
 		h.pictureStore.UpdateProfilePicture(newProfilePicture)
-		utils.WriteJSON(w, http.StatusOK, profilePicture)
+		utils.WriteJSON(w, http.StatusOK, newProfilePicture)
 		return
 	}
 
