@@ -57,7 +57,7 @@ func (s *Store) CreatePost(post *types.Post) (*types.Post, error) {
 	}
 
 	post.Comments = []*types.Comment{}
-	
+
 	if len(post.Photos) == 0 {
 		post.Photos = []string{}
 	}
@@ -112,6 +112,98 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 	post.Comments = comments
 
 	return &post, nil
+}
+
+func (s *Store) GetPostsByCity(city string) ([]*types.Post, error) {
+	query := `
+        SELECT p.id, p.user_id, p.description, p.author_name, p.created_at, p.updated_at, pp.path
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN profile_pictures pp ON u.id = pp.user_id
+        WHERE u.city = $1
+        ORDER BY p.created_at DESC
+    `
+	rows, err := s.db.Query(query, city)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get posts: %w", err)
+	}
+	defer rows.Close()
+
+	var posts []*types.Post
+	for rows.Next() {
+		var post types.Post
+		var userPicture sql.NullString
+		if err := rows.Scan(&post.ID, &post.UserID, &post.AuthorName, &post.Description, &post.CreatedAt, &post.UpdatedAt, &userPicture); err != nil {
+			return nil, fmt.Errorf("failed to scan post: %w", err)
+		}
+		if userPicture.Valid {
+			post.UserPicture = userPicture.String
+		}
+
+		comments, err := s.GetCommentsByPostID(post.ID)
+
+		if err != nil {
+			return nil, fmt.Errorf("error getting comments: %w", err)
+		}
+
+		post.Comments = comments
+
+		photos, err := s.GetPhotosByPostID(post.ID)
+
+		if err != nil {
+			return nil, fmt.Errorf("error getting photos: %w", err)
+		}
+
+		for _, photo := range photos {
+			post.Photos = append(post.Photos, photo.Filename)
+		}
+
+		if len(post.Photos) == 0 {
+			post.Photos = []string{}
+		}
+
+		posts = append(posts, &post)
+	}
+
+	if len(posts) == 0 {
+		return []*types.Post{}, nil
+	}
+
+	return posts, nil
+}
+
+func (s *Store) GetPhotosByPostID(postID int) ([]types.PostPhoto, error) {
+	query := `
+        SELECT id, post_id, filename, created_at
+        FROM post_photos
+        WHERE post_id = $1
+        ORDER BY id ASC
+    `
+	rows, err := s.db.Query(query, postID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get photos: %w", err)
+	}
+	defer rows.Close()
+
+	var photos []types.PostPhoto
+	for rows.Next() {
+		var photo types.PostPhoto
+		if err := rows.Scan(&photo.ID, &photo.PostID, &photo.Filename, &photo.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan photo: %w", err)
+		}
+		photos = append(photos, photo)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over photos: %w", err)
+	}
+
+	if len(photos) == 0 {
+		return []types.PostPhoto{}, nil
+	}
+
+	return photos, nil
 }
 
 func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {

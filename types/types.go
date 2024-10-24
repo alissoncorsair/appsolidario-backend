@@ -86,7 +86,7 @@ type UserWithoutPassword struct {
 
 type User struct {
 	UserWithoutPassword
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
 }
 
 type Token struct {
@@ -140,6 +140,13 @@ type Post struct {
 	Photos      []string   `json:"photos"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type PostPhoto struct {
+	ID        int       `json:"id"`
+	PostID    int       `json:"post_id"`
+	Filename  string    `json:"filename"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type CreatePostRequest struct {

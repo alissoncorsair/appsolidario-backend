@@ -131,9 +131,61 @@ func (s *Store) UpdateUserStatus(userID int, status types.UserStatus) error {
 	return nil
 }
 
+func (s *Store) GetUsersByCity(city string) ([]*types.User, error) {
+	var users []*types.User
+	query := `
+    SELECT u.id, u.name, u.surname, u.email, u.status, u.description, u.postal_code, u.city, u.state, u.cpf, u.role_id, u.points, u.birth_date, u.created_at, u.updated_at, pp.path
+    FROM users u
+    LEFT JOIN profile_pictures pp ON u.id = pp.user_id
+    WHERE u.city = $1
+    `
+
+	rows, err := s.db.Query(query, city)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var u types.User
+		var path sql.NullString
+
+		err := rows.Scan(&u.ID, &u.Name, &u.Surname, &u.Email, &u.Status, &u.Description, &u.PostalCode, &u.City, &u.State, &u.CPF, &u.RoleID, &u.Points, &u.BirthDate, &u.CreatedAt, &u.UpdatedAt, &path)
+
+		if err != nil {
+			return nil, fmt.Errorf("error scanning user: %w", err)
+		}
+
+		if path.Valid {
+			u.UserPicture = path.String
+		}
+
+		users = append(users, &u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func ScanRowIntoUser(row *sql.Row) (*types.User, error) {
 	var u types.User
 	err := row.Scan(&u.ID, &u.Name, &u.Surname, &u.Email, &u.Password, &u.Status, &u.Description, &u.PostalCode, &u.City, &u.State, &u.CPF, &u.RoleID, &u.Points, &u.BirthDate, &u.CreatedAt, &u.UpdatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error scanning user: %w", err)
+	}
+
+	return &u, nil
+}
+
+func ScanRowsIntoUser(rows *sql.Rows) (*types.User, error) {
+	var u types.User
+	err := rows.Scan(&u.ID, &u.Name, &u.Surname, &u.Email, &u.Password, &u.Status, &u.Description, &u.PostalCode, &u.City, &u.State, &u.CPF, &u.RoleID, &u.Points, &u.BirthDate, &u.CreatedAt, &u.UpdatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

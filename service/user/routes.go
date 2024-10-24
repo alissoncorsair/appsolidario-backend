@@ -10,6 +10,7 @@ import (
 	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/service/auth"
 	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
+	"github.com/alissoncorsair/appsolidario-backend/service/notification"
 	"github.com/alissoncorsair/appsolidario-backend/service/profile_picture"
 	"github.com/alissoncorsair/appsolidario-backend/storage"
 	"github.com/alissoncorsair/appsolidario-backend/types"
@@ -20,18 +21,20 @@ import (
 )
 
 type Handler struct {
-	userStore    *Store
-	pictureStore *profile_picture.Store
-	storage      *storage.R2Storage
-	mailer       mailer.Mailer
+	userStore         *Store
+	pictureStore      *profile_picture.Store
+	notificationStore *notification.Store
+	storage           *storage.R2Storage
+	mailer            mailer.Mailer
 }
 
-func NewHandler(userStore *Store, pictureStore *profile_picture.Store, storage *storage.R2Storage, mailer mailer.Mailer) *Handler {
+func NewHandler(userStore *Store, pictureStore *profile_picture.Store, notificationStore *notification.Store, storage *storage.R2Storage, mailer mailer.Mailer) *Handler {
 	return &Handler{
-		userStore:    userStore,
-		pictureStore: pictureStore,
-		storage:      storage,
-		mailer:       mailer,
+		userStore:         userStore,
+		pictureStore:      pictureStore,
+		notificationStore: notificationStore,
+		storage:           storage,
+		mailer:            mailer,
 	}
 }
 
@@ -409,6 +412,65 @@ func (h *Handler) HandleGetGivenProfile(w http.ResponseWriter, r *http.Request) 
 
 }
 
+func (h *Handler) HandleGetNotifications(w http.ResponseWriter, r *http.Request) {
+	userID, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
+	}
+
+	notifications, err := h.notificationStore.GetNotificationsByUserID(userID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get notifications: %w", err))
+		return
+	}
+
+	if notifications == nil {
+		notifications = []*types.Notification{}
+	}
+
+	utils.WriteJSON(w, http.StatusOK, notifications)
+}
+
+func (h *Handler) HandleReadNotification(w http.ResponseWriter, r *http.Request) {
+	userID, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
+	}
+
+	notificationIDStr := r.PathValue("notification_id")
+
+	if notificationIDStr == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid notification ID"))
+		return
+	}
+
+	notificationID, err := strconv.Atoi(notificationIDStr)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid notification ID"))
+		return
+	}
+
+	notification, err := h.notificationStore.ReadNotification(notificationID, userID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to read notification: %w", err))
+		return
+	}
+
+	if notification == nil {
+		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("notification not found"))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, notification)
+}
+
 func (h *Handler) HandleTest(w http.ResponseWriter, r *http.Request) {
 	userId, found := auth.GetUserIDFromContext(r.Context())
 
@@ -424,13 +486,50 @@ func (h *Handler) HandleTest(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) HandleGetUsersByCity(w http.ResponseWriter, r *http.Request) {
+	city := r.URL.Query().Get("city")
+	userID, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
+	}
+
+	if city == "" {
+		user, err := h.userStore.GetUserByID(userID)
+
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get user: %w", err))
+			return
+		}
+
+		city = user.City
+	}
+
+	users, err := h.userStore.GetUsersByCity(city)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get users: %w", err))
+		return
+	}
+
+	if users == nil {
+		users = []*types.User{}
+	}
+
+	utils.WriteJSON(w, http.StatusOK, users)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
 	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
+	router.HandleFunc("GET /users", auth.WithJWTAuth(h.HandleGetUsersByCity, h.userStore))
 	router.HandleFunc("POST /profile-picture", auth.WithJWTAuth(h.HandleAddProfilePicture, h.userStore))
 	router.HandleFunc("GET /profile/{id}", auth.WithJWTAuth(h.HandleGetGivenProfile, h.userStore))
 	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleGetOwnProfile, h.userStore))
 	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.userStore))
 	router.HandleFunc("GET /verify-email", h.HandleVerify)
+	router.HandleFunc("GET /notifications", auth.WithJWTAuth(h.HandleGetNotifications, h.userStore))
+	router.HandleFunc("POST /notification/{notification_id}/read", auth.WithJWTAuth(h.HandleReadNotification, h.userStore))
 }

@@ -18,7 +18,7 @@ func NewStore(db *sql.DB) *Store {
 
 func ScanRowIntoNotification(row *sql.Row) (*types.Notification, error) {
 	var n types.Notification
-	err := row.Scan(&n.ID, &n.UserID, &n.Type, &n.ResourceID, &n.IsRead)
+	err := row.Scan(&n.ID, &n.UserID, &n.Type, &n.ResourceID, &n.IsRead, &n.CreatedAt, &n.UpdatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -35,7 +35,7 @@ func ScanRowsIntoNotifications(rows *sql.Rows) ([]*types.Notification, error) {
 
 	for rows.Next() {
 		var n types.Notification
-		err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.ResourceID, &n.IsRead)
+		err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.ResourceID, &n.IsRead, &n.CreatedAt, &n.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -50,23 +50,35 @@ func ScanRowsIntoNotifications(rows *sql.Rows) ([]*types.Notification, error) {
 }
 
 func (s *Store) CreateNotification(notification *types.Notification) (*types.Notification, error) {
-	query := `INSERT INTO notifications (user_id, type, from_user_id, resource_id, is_read) VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, type, resource_id, is_read`
+	query := `INSERT INTO notifications (user_id, type, from_user_id, resource_id, is_read) VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, type, resource_id, is_read, created_at, updated_at`
 	row := s.db.QueryRow(query, notification.UserID, notification.Type, notification.FromUserID, notification.ResourceID, notification.IsRead)
 
 	return ScanRowIntoNotification(row)
 }
 
-func (s *Store) ReadNotification(notificationID int) (*types.Notification, error) {
-	query := `UPDATE notifications SET is_read = true WHERE id = $1 RETURNING id, user_id, type, resource_id, is_read`
-	row := s.db.QueryRow(query, notificationID)
+func (s *Store) ReadNotification(notificationID int, userID int) (*types.Notification, error) {
+	query := `UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2 RETURNING id, user_id, type, resource_id, is_read, created_at, updated_at`
+	row := s.db.QueryRow(query, notificationID, userID)
 
-	return ScanRowIntoNotification(row)
+	notification, err := ScanRowIntoNotification(row)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return notification, nil
 }
 
 func (s *Store) GetNotificationsByUserID(userID int) ([]*types.Notification, error) {
-	query := `SELECT id, user_id, type, resource_id, is_read FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`
+	query := `SELECT id, user_id, type, resource_id, is_read, created_at, updated_at FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`
 	rows, err := s.db.Query(query, userID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	defer rows.Close()

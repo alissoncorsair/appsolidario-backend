@@ -361,6 +361,33 @@ func (h *Handler) HandleGetOwnPosts(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, posts)
 }
 
+func (h *Handler) HandleGetPostsByCity(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not authenticated"))
+		return
+	}
+
+	city := r.URL.Query().Get("city")
+	if city == "" {
+		user, err := h.userStore.GetUserByID(userID)
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get user: %w", err))
+			return
+		}
+		city = user.City
+	}
+
+	posts, err := h.postStore.GetPostsByCity(city)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get posts: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, posts)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /posts", auth.WithJWTAuth(h.HandleCreatePost, h.userStore))
 	router.HandleFunc("GET /posts/{id}", auth.WithJWTAuth(h.HandleGetPostByID, h.userStore))
@@ -369,4 +396,5 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /comments/{post_id}", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
 	router.HandleFunc("DELETE /comments/{id}", auth.WithJWTAuth(h.HandleDeleteComment, h.userStore))
 	router.HandleFunc("GET /photos/{filename}", h.HandleGetPhoto)
+	router.HandleFunc("GET /posts/city", auth.WithJWTAuth(h.HandleGetPostsByCity, h.userStore))
 }

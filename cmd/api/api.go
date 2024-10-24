@@ -52,13 +52,13 @@ func (s *APIServer) Run() error {
 	mailer := mailer.NewSendGridMailer(config.Envs.SendgridApiKey, config.Envs.EmailFrom, config.Envs.DevMode)
 	userStore := user.NewStore(s.db)
 	profilePictureStore := profile_picture.NewStore(s.db)
-	userHandler := user.NewHandler(userStore, profilePictureStore, s.storage, mailer)
+	notificationStore := notification.NewStore(s.db)
+	userHandler := user.NewHandler(userStore, profilePictureStore, notificationStore, s.storage, mailer)
 	userHandler.RegisterRoutes(apiRouter)
 	postStore := post.NewStore(s.db)
 	postHandler := post.NewHandler(postStore, userStore, s.storage)
 	postHandler.RegisterRoutes(apiRouter)
 	transactionsStore := transactions.NewStore(s.db)
-	notificationStore := notification.NewStore(s.db)
 	paymentStore := paymentService.NewStore(s.db, payment.MercadoPago{
 		AccessToken: config.Envs.MercadoPagoAccessToken,
 	}, transactionsStore, notificationStore)
