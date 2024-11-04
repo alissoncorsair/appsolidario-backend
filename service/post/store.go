@@ -207,12 +207,15 @@ func (s *Store) GetPhotosByPostID(postID int) ([]types.PostPhoto, error) {
 }
 
 func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
+
 	query := `
-	SELECT p.id, p.user_id, p.author_name, p.description, p.created_at, p.updated_at 
+	SELECT p.id, p.user_id, p.author_name, p.description, p.created_at, p.updated_at, pp.path
 	FROM posts p
+	JOIN users u ON p.user_id = u.id
+	LEFT JOIN profile_pictures pp ON u.id = pp.user_id
 	WHERE p.user_id = $1
 	ORDER BY p.created_at DESC
-	`
+`
 
 	rows, err := s.db.Query(query, id)
 
@@ -222,42 +225,19 @@ func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
 
 	defer rows.Close()
 
-	posts := []*types.Post{}
-
+	var posts []*types.Post
 	for rows.Next() {
 		var post types.Post
-		err := rows.Scan(
+		var userPicture sql.NullString
+		if err := rows.Scan(
 			&post.ID, &post.UserID, &post.AuthorName, &post.Description,
-			&post.CreatedAt, &post.UpdatedAt,
-		)
-
-		if err != nil {
+			&post.CreatedAt, &post.UpdatedAt, &userPicture,
+		); err != nil {
 			return nil, fmt.Errorf("error scanning post: %w", err)
 		}
 
-		photoQuery := `
-			SELECT filename FROM post_photos
-			WHERE post_id = $1
-			ORDER BY created_at
-		`
-		photoRows, err := s.db.Query(photoQuery, post.ID)
-
-		if err != nil {
-			return nil, fmt.Errorf("error getting post photos: %w", err)
-		}
-
-		defer photoRows.Close()
-
-		for photoRows.Next() {
-			var filename string
-			if err := photoRows.Scan(&filename); err != nil {
-				return nil, fmt.Errorf("error scanning filename: %w", err)
-			}
-			post.Photos = append(post.Photos, filename)
-		}
-
-		if len(post.Photos) == 0 {
-			post.Photos = []string{}
+		if userPicture.Valid {
+			post.UserPicture = userPicture.String
 		}
 
 		comments, err := s.GetCommentsByPostID(post.ID)
@@ -270,6 +250,16 @@ func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
 
 		if len(post.Comments) == 0 {
 			post.Comments = []*types.Comment{}
+		}
+
+		photos, err := s.GetPhotosByPostID(post.ID)
+
+		if err != nil {
+			return nil, fmt.Errorf("error getting photos: %w", err)
+		}
+
+		for _, photo := range photos {
+			post.Photos = append(post.Photos, photo.Filename)
 		}
 
 		posts = append(posts, &post)
@@ -336,27 +326,34 @@ func (s *Store) DeleteComment(commentID int) error {
 
 func (s *Store) GetCommentsByPostID(postID int) ([]*types.Comment, error) {
 	query := `
-        SELECT id, post_id, user_id, author_name, content, created_at, updated_at
-        FROM comments
-        WHERE post_id = $1
-        ORDER BY created_at DESC
-    `
+	SELECT c.id, c.post_id, c.user_id, c.author_name, c.content, c.created_at, c.updated_at, pp.path
+	FROM comments c
+	JOIN users u ON c.user_id = u.id
+	LEFT JOIN profile_pictures pp ON u.id = pp.user_id
+	WHERE c.post_id = $1
+	ORDER BY c.created_at ASC
+`
 	rows, err := s.db.Query(query, postID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting comments: %w", err)
 	}
 	defer rows.Close()
 
-	comments := []*types.Comment{}
+	var comments []*types.Comment
 	for rows.Next() {
 		var comment types.Comment
-		err := rows.Scan(
+		var userPicture sql.NullString
+		if err := rows.Scan(
 			&comment.ID, &comment.PostID, &comment.UserID, &comment.AuthorName, &comment.Content,
-			&comment.CreatedAt, &comment.UpdatedAt,
-		)
-		if err != nil {
+			&comment.CreatedAt, &comment.UpdatedAt, &userPicture,
+		); err != nil {
 			return nil, fmt.Errorf("error scanning comment: %w", err)
 		}
+
+		if userPicture.Valid {
+			comment.UserPicture = userPicture.String
+		}
+
 		comments = append(comments, &comment)
 	}
 
