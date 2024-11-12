@@ -134,7 +134,7 @@ func (s *Store) GetPostsByCity(city string) ([]*types.Post, error) {
 	for rows.Next() {
 		var post types.Post
 		var userPicture sql.NullString
-		if err := rows.Scan(&post.ID, &post.UserID, &post.AuthorName, &post.Description, &post.CreatedAt, &post.UpdatedAt, &userPicture); err != nil {
+		if err := rows.Scan(&post.ID, &post.UserID, &post.Description, &post.AuthorName, &post.CreatedAt, &post.UpdatedAt, &userPicture); err != nil {
 			return nil, fmt.Errorf("failed to scan post: %w", err)
 		}
 		if userPicture.Valid {
