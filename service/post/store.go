@@ -149,6 +149,10 @@ func (s *Store) GetPostsByCity(city string) ([]*types.Post, error) {
 
 		post.Comments = comments
 
+		if len(post.Comments) == 0 {
+			post.Comments = []*types.Comment{}
+		}
+
 		photos, err := s.GetPhotosByPostID(post.ID)
 
 		if err != nil {
