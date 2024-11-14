@@ -52,10 +52,15 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.userStore.GetUserByEmail(payload.Email)
+	existingUser, err := h.userStore.GetUserByEmail(payload.Email)
 
-	if err == nil {
+	if existingUser != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("o email %s já foi cadastrado", payload.Email))
+		return
+	}
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
