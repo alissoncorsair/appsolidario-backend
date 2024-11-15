@@ -525,11 +525,23 @@ func (h *Handler) HandleGetUsersByCity(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, users)
 }
 
+func (h *Handler) HandleGetCities(w http.ResponseWriter, r *http.Request) {
+	cities, err := h.userStore.GetAllCities()
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get cities: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, cities)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
 	router.HandleFunc("POST /refresh-token", auth.HandleTokenRefresh)
 	router.HandleFunc("GET /users", auth.WithJWTAuth(h.HandleGetUsersByCity, h.userStore))
+	router.HandleFunc("GET /cities", auth.WithJWTAuth(h.HandleGetCities, h.userStore))
 	router.HandleFunc("POST /profile-picture", auth.WithJWTAuth(h.HandleAddProfilePicture, h.userStore))
 	router.HandleFunc("GET /profile/{id}", auth.WithJWTAuth(h.HandleGetGivenProfile, h.userStore))
 	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleGetOwnProfile, h.userStore))

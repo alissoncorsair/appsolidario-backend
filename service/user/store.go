@@ -169,6 +169,35 @@ func (s *Store) GetUsersByCity(city string) ([]*types.User, error) {
 	return users, nil
 }
 
+func (s *Store) GetAllCities() ([]string, error) {
+	query := `
+    SELECT DISTINCT city
+    FROM users
+    ORDER BY city
+    `
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cities: %w", err)
+	}
+	defer rows.Close()
+
+	var cities []string
+	for rows.Next() {
+		var city string
+		if err := rows.Scan(&city); err != nil {
+			return nil, fmt.Errorf("failed to scan city: %w", err)
+		}
+		cities = append(cities, city)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return cities, nil
+}
+
 func ScanRowIntoUser(row *sql.Row) (*types.User, error) {
 	var u types.User
 	err := row.Scan(&u.ID, &u.Name, &u.Surname, &u.Email, &u.Password, &u.Status, &u.Description, &u.PostalCode, &u.City, &u.State, &u.CPF, &u.RoleID, &u.Points, &u.BirthDate, &u.CreatedAt, &u.UpdatedAt)
