@@ -417,26 +417,42 @@ func (h *Handler) HandleGetGivenProfile(w http.ResponseWriter, r *http.Request) 
 
 }
 
+type NotificationResponse struct {
+	ID          int                      `json:"id"`
+	IsRead      bool                     `json:"isRead"`
+	CreatedAt   time.Time                `json:"createdAt"`
+	FromUser    notification.MinimalUser `json:"fromUser"`
+	Transaction struct {
+		Amount float64 `json:"amount"`
+	} `json:"transaction"`
+}
+
 func (h *Handler) HandleGetNotifications(w http.ResponseWriter, r *http.Request) {
 	userID, found := auth.GetUserIDFromContext(r.Context())
-
 	if !found {
 		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
 		return
 	}
 
 	notifications, err := h.notificationStore.GetNotificationsByUserID(userID)
-
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get notifications: %w", err))
 		return
 	}
 
-	if notifications == nil {
-		notifications = []*types.Notification{}
+	response := make([]NotificationResponse, 0)
+	for _, n := range notifications {
+		resp := NotificationResponse{
+			ID:        n.ID,
+			IsRead:    n.IsRead,
+			CreatedAt: n.CreatedAt,
+			FromUser:  n.FromUser,
+		}
+		resp.Transaction.Amount = n.Transaction.Amount
+		response = append(response, resp)
 	}
 
-	utils.WriteJSON(w, http.StatusOK, notifications)
+	utils.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *Handler) HandleReadNotification(w http.ResponseWriter, r *http.Request) {
