@@ -361,6 +361,28 @@ func (h *Handler) HandleGetOwnPosts(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, posts)
 }
 
+func (h *Handler) HandleGetPostsByUserId(w http.ResponseWriter, r *http.Request) {
+	id := filepath.Base(r.URL.Path)
+	if id == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID"))
+		return
+	}
+
+	userID, err := strconv.Atoi(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID"))
+		return
+	}
+
+	posts, err := h.postStore.GetPostsByUserID(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get posts: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, posts)
+}
+
 func (h *Handler) HandleGetPostsByCity(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.GetUserIDFromContext(r.Context())
 	if !ok {
@@ -390,7 +412,8 @@ func (h *Handler) HandleGetPostsByCity(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /posts", auth.WithJWTAuth(h.HandleCreatePost, h.userStore))
-	router.HandleFunc("GET /posts/{id}", auth.WithJWTAuth(h.HandleGetPostByID, h.userStore))
+	router.HandleFunc("GET /post/{id}", auth.WithJWTAuth(h.HandleGetPostByID, h.userStore))
+	router.HandleFunc("GET /posts/user/{id}", auth.WithJWTAuth(h.HandleGetPostsByUserId, h.userStore))
 	router.HandleFunc("GET /me/posts", auth.WithJWTAuth(h.HandleGetOwnPosts, h.userStore))
 	router.HandleFunc("DELETE /posts/{id}", auth.WithJWTAuth(h.HandleDeletePost, h.userStore))
 	router.HandleFunc("POST /comments/{post_id}", auth.WithJWTAuth(h.HandleCreateComment, h.userStore))
