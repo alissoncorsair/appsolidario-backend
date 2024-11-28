@@ -8,7 +8,6 @@ import (
 	"github.com/alissoncorsair/appsolidario-backend/types"
 )
 
-// Store represents the store for user.
 type Store struct {
 	db *sql.DB
 }
@@ -129,6 +128,17 @@ func (s *Store) UpdateUserStatus(userID int, status types.UserStatus) error {
 	}
 
 	return nil
+}
+
+func (s *Store) UpdateUserDescription(userID int, description string) (*types.User, error) {
+	query := `
+        UPDATE users 
+        SET description = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, name, surname, email, password, status, description, postal_code, city, state, cpf, role_id, points, birth_date, created_at, updated_at`
+
+	row := s.db.QueryRow(query, description, userID)
+	return ScanRowIntoUser(row)
 }
 
 func (s *Store) GetUsersByCity(city string) ([]*types.User, error) {

@@ -552,6 +552,52 @@ func (h *Handler) HandleGetCities(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, cities)
 }
 
+type UpdateDescriptionRequest struct {
+	Description string `json:"description" validate:"required"`
+}
+
+func (h *Handler) HandleUpdateDescription(w http.ResponseWriter, r *http.Request) {
+	var payload UpdateDescriptionRequest
+
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := utils.Validate.Struct(payload); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload %v", errors))
+		return
+	}
+
+	userID, found := auth.GetUserIDFromContext(r.Context())
+
+	if !found {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("user not found"))
+		return
+	}
+
+	user, err := h.userStore.UpdateUserDescription(userID, payload.Description)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to update description: %w", err))
+		return
+	}
+
+	profilePicture, err := h.userStore.GetUserProfilePicture(user.ID)
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get profile picture: %w", err))
+		return
+	}
+
+	if profilePicture != nil {
+		user.UserPicture = profilePicture.Path
+	}
+
+	utils.WriteJSON(w, http.StatusOK, user)
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
@@ -559,6 +605,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("GET /users", auth.WithJWTAuth(h.HandleGetUsersByCity, h.userStore))
 	router.HandleFunc("GET /cities", auth.WithJWTAuth(h.HandleGetCities, h.userStore))
 	router.HandleFunc("POST /profile-picture", auth.WithJWTAuth(h.HandleAddProfilePicture, h.userStore))
+	router.HandleFunc("POST /description", auth.WithJWTAuth(h.HandleUpdateDescription, h.userStore))
 	router.HandleFunc("GET /profile/{id}", auth.WithJWTAuth(h.HandleGetGivenProfile, h.userStore))
 	router.HandleFunc("GET /profile", auth.WithJWTAuth(h.HandleGetOwnProfile, h.userStore))
 	router.HandleFunc("POST /auth", auth.WithJWTAuth(h.HandleTest, h.userStore))
