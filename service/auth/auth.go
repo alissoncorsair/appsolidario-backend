@@ -133,6 +133,11 @@ func WithJWTAuth(handlerFunc http.HandlerFunc, store types.UserStore) http.Handl
 			return
 		}
 
+		if u == nil {
+			permissionDenied(w)
+			return
+		}
+
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, UserKey, u.ID)
 

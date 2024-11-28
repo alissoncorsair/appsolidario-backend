@@ -6,24 +6,30 @@ import (
 	"strconv"
 
 	"github.com/alissoncorsair/appsolidario-backend/payment"
+	"github.com/alissoncorsair/appsolidario-backend/service/mailer"
 	"github.com/alissoncorsair/appsolidario-backend/service/notification"
 	"github.com/alissoncorsair/appsolidario-backend/service/transactions"
+	"github.com/alissoncorsair/appsolidario-backend/service/user"
 	"github.com/alissoncorsair/appsolidario-backend/types"
 )
 
 type Store struct {
 	db                *sql.DB
 	transactionsStore *transactions.Store
+	userStore         *user.Store
 	notificationStore *notification.Store
 	gateway           payment.MercadoPago
+	mailer            mailer.Mailer
 }
 
-func NewStore(db *sql.DB, gateway payment.MercadoPago, transactionsStore *transactions.Store, notificationsStore *notification.Store) *Store {
+func NewStore(db *sql.DB, gateway payment.MercadoPago, transactionsStore *transactions.Store, userStore *user.Store, notificationsStore *notification.Store, mailer mailer.Mailer) *Store {
 	return &Store{
 		db:                db,
 		transactionsStore: transactionsStore,
 		notificationStore: notificationsStore,
+		userStore:         userStore,
 		gateway:           gateway,
+		mailer:            mailer,
 	}
 }
 
@@ -153,6 +159,14 @@ func (s *Store) ProcessWebhookEvent(event payment.MercadoPagoWebhookEvent) error
 			}
 
 			_, _ = s.notificationStore.CreateNotification(notification)
+
+			payer, err := s.userStore.GetUserByID(transaction.PayerID)
+			if err == nil && payer != nil {
+				err = s.mailer.SendPaymentThanksEmail(payer, paymentInfo.TransactionAmount)
+				if err != nil {
+					fmt.Printf("failed to send payment thanks email: %v", err)
+				}
+			}
 		}
 	default:
 		return fmt.Errorf("unhandled event type: %s", event.Type)

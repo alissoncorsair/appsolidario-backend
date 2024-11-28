@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Confirme seu email</title>
+    <title>Obrigado pela sua doação!</title>
     <style>
         body {
             font-family: 'Manrope', Arial, sans-serif;
@@ -26,6 +26,13 @@
             color: white;
             border-radius: 12px;
         }
+        .amount {
+            font-size: 32px;
+            font-weight: bold;
+            color: #5030E5;
+            text-align: center;
+            padding: 20px 0;
+        }
         .message {
             padding: 20px;
             background-color: #fff;
@@ -35,15 +42,19 @@
         }
         .button {
             display: inline-block;
-            padding: 15px 30px;
+            padding: 12px 24px;
             background-color: #5030E5;
             color: #ffffff;
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: 24px;
             margin: 20px 0;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            background-color: #ffffff;
+            color: #5030E5;
+            border: 2px solid #5030E5;
         }
         .footer {
             text-align: center;
@@ -63,13 +74,21 @@
     <div class="container">
         <div class="header">
             <div class="logo">SOLIDARIZA</div>
-            <h1>Confirme seu email</h1>
+            <h1>Obrigado pela sua doação!</h1>
         </div>
-
+        
         <div class="message">
             <p>Olá {{ .User.Name }},</p>
             
-            <p>Seja bem-vindo(a) ao Solidariza! Para começar a usar nossa plataforma, precisamos confirmar seu endereço de email.</p>
+            <p>Sua doação foi confirmada com sucesso:</p>
+            
+            <div class="amount">
+                R$ {{ printf "%.2f" .Amount }}
+            </div>
+            
+            <p>Sua contribuição faz toda a diferença na vida de alguém da nossa comunidade. Com seu apoio, estamos construindo uma rede de solidariedade mais forte.</p>
+            
+            <p>Juntos somos mais fortes!</p>
             
             <center>
                 <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 30px 0;">
@@ -78,7 +97,7 @@
                             <table border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td align="center" style="border-radius: 4px;" bgcolor="#5030e5">
-                                        <a href="{{ .URL }}" 
+                                        <a href="https://front-tcc-one.vercel.app/" 
                                            target="_blank"
                                            style="font-size: 16px;
                                                   font-family: Arial, sans-serif;
@@ -93,7 +112,7 @@
                                                   letter-spacing: 1px;
                                                   mso-padding-alt: 0;
                                                   text-transform: uppercase;">
-                                            Confirmar Email
+                                            Acessar Plataforma
                                         </a>
                                     </td>
                                 </tr>
@@ -102,13 +121,11 @@
                     </tr>
                 </table>
             </center>
-
-            <p>Se você não se cadastrou no Solidariza, por favor ignore este email.</p>
         </div>
-
-        <div class="footer">
-            <p>Esta mensagem foi enviada automaticamente pelo sistema Solidariza.</p>
-            <p>Para entrar em contato conosco, envie um email para contato@solidariza.com.br</p>
+        
+        <div class="footer" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #666; font-size: 14px;">Esta mensagem foi enviada automaticamente pelo sistema Solidariza.</p>
+            <p style="color: #666; font-size: 14px;">Para entrar em contato conosco, acesse nossa plataforma ou envie um email para contato@solidariza.com.br</p>
             <p style="color: #666; font-size: 12px; margin-top: 20px;">© {{ .CurrentYear }} Solidariza | Transformando vidas através da solidariedade</p>
         </div>
     </div>

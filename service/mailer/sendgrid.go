@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
+	"time"
 
 	"github.com/alissoncorsair/appsolidario-backend/config"
 	"github.com/alissoncorsair/appsolidario-backend/types"
@@ -14,9 +15,10 @@ import (
 var FromName = "Solidariza"
 
 type SendGridMailer struct {
-	From    string
-	Client  *sendgrid.Client
-	DevMode bool
+	Client   *sendgrid.Client
+	From     string
+	FromName string
+	DevMode  bool
 }
 
 func NewSendGridMailer(apiKey, fromEmail string, devMode bool) *SendGridMailer {
@@ -65,6 +67,49 @@ func (m *SendGridMailer) SendConfirmationEmail(user *types.User, token string) e
 	return nil
 }
 
+func (m *SendGridMailer) SendPaymentThanksEmail(user *types.User, amount float64) error {
+	/*     if m.DevMode {
+	       fmt.Printf("Development mode: Thank you email would be sent to %s\n", user.Email)
+	       return nil
+	   } */
+
+	from := mail.NewEmail(m.FromName, m.From)
+	subject := "Obrigado pela sua doação!"
+	to := mail.NewEmail(user.Name, user.Email)
+
+	templateData := struct {
+		User        *types.User
+		Amount      float64
+		CurrentYear int
+	}{
+		User:        user,
+		Amount:      amount,
+		CurrentYear: time.Now().Year(),
+	}
+
+	var body bytes.Buffer
+	tmpl, err := template.ParseFiles("service/mailer/templates/payment-thanks.templ")
+	if err != nil {
+		return fmt.Errorf("failed to parse template: %w", err)
+	}
+
+	if err := tmpl.Execute(&body, templateData); err != nil {
+		return fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	message := mail.NewSingleEmail(from, subject, to, "", body.String())
+	response, err := m.Client.Send(message)
+	if err != nil {
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	if response.StatusCode >= 400 {
+		return fmt.Errorf("email API error: %d - %s", response.StatusCode, response.Body)
+	}
+
+	return nil
+}
+
 func BuildConfirmationEmail(user *types.User, token string) (string, error) {
 	templ, err := template.ParseFiles("service/mailer/templates/mail-confirmation.templ")
 	if err != nil {
@@ -74,11 +119,13 @@ func BuildConfirmationEmail(user *types.User, token string) (string, error) {
 	URL := fmt.Sprintf("%s?token=%s", config.Envs.EmailVerifyUrl, token)
 
 	payload := struct {
-		User *types.User
-		URL  string
+		User        *types.User
+		URL         string
+		CurrentYear int
 	}{
-		User: user,
-		URL:  URL,
+		User:        user,
+		URL:         URL,
+		CurrentYear: time.Now().Year(),
 	}
 
 	var body bytes.Buffer

@@ -61,7 +61,7 @@ func (s *APIServer) Run() error {
 	transactionsStore := transactions.NewStore(s.db)
 	paymentStore := paymentService.NewStore(s.db, payment.MercadoPago{
 		AccessToken: config.Envs.MercadoPagoAccessToken,
-	}, transactionsStore, notificationStore)
+	}, transactionsStore, userStore, notificationStore, mailer)
 	paymentHandler := paymentService.NewHandler(paymentStore, userStore)
 
 	paymentHandler.RegisterRoutes(apiRouter)
