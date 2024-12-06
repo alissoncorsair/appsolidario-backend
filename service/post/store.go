@@ -116,7 +116,8 @@ func (s *Store) GetPostByID(id int) (*types.Post, error) {
 
 func (s *Store) GetPostsByCity(city string) ([]*types.Post, error) {
 	query := `
-        SELECT p.id, p.user_id, p.description, p.author_name, p.created_at, p.updated_at, pp.path
+        SELECT p.id, p.user_id, p.description, p.author_name, 
+               p.created_at, p.updated_at, pp.path, u.city as user_city
         FROM posts p
         JOIN users u ON p.user_id = u.id
         LEFT JOIN profile_pictures pp ON u.id = pp.user_id
@@ -124,7 +125,6 @@ func (s *Store) GetPostsByCity(city string) ([]*types.Post, error) {
         ORDER BY p.created_at DESC
     `
 	rows, err := s.db.Query(query, city)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get posts: %w", err)
 	}
@@ -134,7 +134,16 @@ func (s *Store) GetPostsByCity(city string) ([]*types.Post, error) {
 	for rows.Next() {
 		var post types.Post
 		var userPicture sql.NullString
-		if err := rows.Scan(&post.ID, &post.UserID, &post.Description, &post.AuthorName, &post.CreatedAt, &post.UpdatedAt, &userPicture); err != nil {
+		if err := rows.Scan(
+			&post.ID,
+			&post.UserID,
+			&post.Description,
+			&post.AuthorName,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+			&userPicture,
+			&post.UserCity,
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan post: %w", err)
 		}
 		if userPicture.Valid {
@@ -213,7 +222,7 @@ func (s *Store) GetPhotosByPostID(postID int) ([]types.PostPhoto, error) {
 func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
 
 	query := `
-	SELECT p.id, p.user_id, p.author_name, p.description, p.created_at, p.updated_at, pp.path
+	SELECT p.id, p.user_id, p.author_name, p.description, p.created_at, p.updated_at, pp.path, u.city as user_city
 	FROM posts p
 	JOIN users u ON p.user_id = u.id
 	LEFT JOIN profile_pictures pp ON u.id = pp.user_id
@@ -235,7 +244,7 @@ func (s *Store) GetPostsByUserID(id int) ([]*types.Post, error) {
 		var userPicture sql.NullString
 		if err := rows.Scan(
 			&post.ID, &post.UserID, &post.AuthorName, &post.Description,
-			&post.CreatedAt, &post.UpdatedAt, &userPicture,
+			&post.CreatedAt, &post.UpdatedAt, &userPicture, &post.UserCity,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning post: %w", err)
 		}

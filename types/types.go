@@ -134,6 +134,7 @@ type Post struct {
 	ID          int        `json:"id"`
 	UserID      int        `json:"user_id"`
 	AuthorName  string     `json:"author_name"`
+	UserCity    string     `json:"user_city"`
 	UserPicture string     `json:"user_picture"`
 	Comments    []*Comment `json:"comments"`
 	Description string     `json:"description" validate:"required"`
