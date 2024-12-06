@@ -1,6 +1,7 @@
 package user
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -603,6 +604,47 @@ func (h *Handler) HandleUpdateDescription(w http.ResponseWriter, r *http.Request
 	utils.WriteJSON(w, http.StatusOK, user)
 }
 
+func (h *Handler) HandleResendVerificationEmail(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Email string `json:"email"`
+	}
+
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// Get user by email
+	user, err := h.userStore.GetUserByEmail(payload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.WriteError(w, http.StatusNotFound, fmt.Errorf("usuário não encontrado"))
+			return
+		}
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if user.Status == types.StatusActive {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("usuário já está ativo"))
+		return
+	}
+
+	activationToken, err := auth.CreateJWT([]byte(config.Envs.JWTSecret), user.ID, types.TokenTypeVerify, time.Hour*24)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = h.mailer.SendConfirmationEmail(user, activationToken)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to send confirmation email: %w", err))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Email de verificação reenviado com sucesso"})
+}
+
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /login", h.HandleLogin)
 	router.HandleFunc("POST /register", h.HandleRegister)
@@ -617,4 +659,5 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("GET /verify-email", h.HandleVerify)
 	router.HandleFunc("GET /notifications", auth.WithJWTAuth(h.HandleGetNotifications, h.userStore))
 	router.HandleFunc("POST /notification/{notification_id}/read", auth.WithJWTAuth(h.HandleReadNotification, h.userStore))
+	router.HandleFunc("/resend-verification", h.HandleResendVerificationEmail)
 }
