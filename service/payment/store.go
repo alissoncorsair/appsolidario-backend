@@ -34,9 +34,10 @@ func NewStore(db *sql.DB, gateway payment.MercadoPago, transactionsStore *transa
 }
 
 type CreatePaymentResponse struct {
-	ExternalID   string  `json:"external_id"`
-	QRCodeBase64 string  `json:"qr_code"`
-	Amount       float64 `json:"amount"`
+	ExternalID    string  `json:"external_id"`
+	QRCodeBase64  string  `json:"qr_code"`
+	CopyPasteCode string  `json:"copy_paste_code"`
+	Amount        float64 `json:"amount"`
 }
 
 func (s *Store) CreatePayment(paymentInfo payment.PaymentInfo, user types.User) (*CreatePaymentResponse, error) {
@@ -56,9 +57,10 @@ func (s *Store) CreatePayment(paymentInfo payment.PaymentInfo, user types.User) 
 
 	if transaction != nil {
 		return &CreatePaymentResponse{
-			ExternalID:   stringId,
-			QRCodeBase64: info.PointOfInteraction.TransactionData.QRCodeBase64,
-			Amount:       info.TransactionAmount,
+			ExternalID:    stringId,
+			QRCodeBase64:  info.PointOfInteraction.TransactionData.QRCodeBase64,
+			Amount:        info.TransactionAmount,
+			CopyPasteCode: info.PointOfInteraction.TransactionData.QRCode,
 		}, nil
 	}
 
@@ -69,18 +71,20 @@ func (s *Store) CreatePayment(paymentInfo payment.PaymentInfo, user types.User) 
 	}
 
 	response := &CreatePaymentResponse{
-		ExternalID:   stringId,
-		QRCodeBase64: info.PointOfInteraction.TransactionData.QRCodeBase64,
-		Amount:       info.TransactionAmount,
+		ExternalID:    stringId,
+		QRCodeBase64:  info.PointOfInteraction.TransactionData.QRCodeBase64,
+		Amount:        info.TransactionAmount,
+		CopyPasteCode: info.PointOfInteraction.TransactionData.QRCode,
 	}
 
 	return response, nil
 }
 
 type PaymentStatusResponse struct {
-	Status types.TransactionStatus `json:"status"`
-	Amount float64                 `json:"amount"`
-	QRCode string                  `json:"qr_code"`
+	Status        types.TransactionStatus `json:"status"`
+	Amount        float64                 `json:"amount"`
+	QRCode        string                  `json:"qr_code"`
+	CopyPasteCode string                  `json:"copy_paste_code"`
 }
 
 func (s *Store) GetPaymentStatus(paymentID string) (*PaymentStatusResponse, error) {
@@ -111,9 +115,10 @@ func (s *Store) GetPaymentStatus(paymentID string) (*PaymentStatusResponse, erro
 	}
 
 	response := &PaymentStatusResponse{
-		Status: status,
-		Amount: paymentInfo.TransactionAmount,
-		QRCode: qrCode,
+		Status:        status,
+		Amount:        paymentInfo.TransactionAmount,
+		QRCode:        qrCode,
+		CopyPasteCode: paymentInfo.PointOfInteraction.TransactionData.QRCode,
 	}
 
 	return response, nil
