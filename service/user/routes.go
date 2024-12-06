@@ -75,10 +75,15 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.userStore.GetUserByCPF(cpf)
+	existingUser, err = h.userStore.GetUserByCPF(cpf)
 
-	if err == nil {
+	if existingUser != nil {
 		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("o cpf %s já foi cadastrado", payload.CPF))
+		return
+	}
+
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
